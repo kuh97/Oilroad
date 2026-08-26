@@ -30,3 +30,9 @@ Thumbs.db
 
 # ── Vercel ────────────────────────────────
 .vercel
+
+# ── 테스트 커버리지 ────────────────────────
+coverage/
+
+# ── pnpm 워크스페이스 잠금파일 (scripts/ 자체 관리) ─
+scripts/node_modules/
