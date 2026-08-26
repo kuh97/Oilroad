@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: "v8",
-      include: ["src/domain/**"],
+      include: ["src/domain/**", "src/infra/**"],
       thresholds: {
         lines: 90,
         functions: 90,
