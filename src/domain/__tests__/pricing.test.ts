@@ -1,0 +1,250 @@
+import { describe, expect, it } from "vitest";
+import {
+  netSaving,
+  totalCost,
+  computeScores,
+  passesT3Gate,
+  exceedsDetourCap,
+  median,
+  removeOutliers,
+  computeReferencePrice,
+  estimateDetourDistanceM,
+  estimateDetourDurationS,
+  scoreByMode,
+  durationSToMin,
+  distanceMToKm,
+} from "../pricing";
+import { DETOUR_ESTIMATE_FACTOR, AVG_SPEED } from "../params";
+
+// ─── 골든 테스트 (PRODUCT.md §5.3 예시) ───────────────────────────────────────
+// P_ref=1800, P_s=1700, Q=45L, ΔD=2000m, E=12km/L
+// NetSaving = (1800-1700)*45 - (2000/1000/12)*1700
+//           = 4500 - 283.33... = 4216.67 → 4217 (round)
+// TotalCost = 1700*45 + (2000/1000/12)*1700
+//           = 76500 + 283.33... = 76783.33 → 76783 (round)
+describe("골든 테스트 — PRODUCT.md §5.3", () => {
+  const BASE = {
+    priceRefWon: 1800,
+    priceStationWon: 1700,
+    refuelAmountL: 45,
+    detourDistanceM: 2000,
+    efficiencyKmPerL: 12,
+  };
+
+  it("netSaving 계산", () => {
+    expect(netSaving(BASE)).toBe(4217);
+  });
+
+  it("totalCost 계산", () => {
+    const tc = totalCost(BASE);
+    expect(tc).toBe(76783);
+  });
+});
+
+// ─── netSaving 경계값 ─────────────────────────────────────────────────────────
+describe("netSaving 경계값", () => {
+  it("P_s == P_ref → 우회 비용만큼 음수", () => {
+    const result = netSaving({
+      priceRefWon: 1700,
+      priceStationWon: 1700,
+      refuelAmountL: 45,
+      detourDistanceM: 5000,
+      efficiencyKmPerL: 12,
+    });
+    // (0)*45 - (5000/1000/12)*1700 = -(5/12)*1700 = -708.33 → -708
+    expect(result).toBe(-708);
+  });
+
+  it("P_s > P_ref → 무조건 음수", () => {
+    const result = netSaving({
+      priceRefWon: 1600,
+      priceStationWon: 1800,
+      refuelAmountL: 45,
+      detourDistanceM: 0,
+      efficiencyKmPerL: 12,
+    });
+    expect(result).toBeLessThan(0);
+  });
+
+  it("우회 없으면 (P_ref − P_s) × Q", () => {
+    const result = netSaving({
+      priceRefWon: 1800,
+      priceStationWon: 1700,
+      refuelAmountL: 45,
+      detourDistanceM: 0,
+      efficiencyKmPerL: 12,
+    });
+    expect(result).toBe((1800 - 1700) * 45);
+  });
+});
+
+// ─── totalCost ────────────────────────────────────────────────────────────────
+describe("totalCost", () => {
+  it("우회 없으면 Q × P_s", () => {
+    const tc = totalCost({
+      priceStationWon: 1700,
+      refuelAmountL: 45,
+      detourDistanceM: 0,
+      efficiencyKmPerL: 12,
+    });
+    expect(tc).toBe(1700 * 45);
+  });
+});
+
+// ─── computeScores ────────────────────────────────────────────────────────────
+describe("computeScores", () => {
+  it("balanced = TotalCost + (ΔT/60) × V_TIME", () => {
+    const scores = computeScores({
+      priceStationWon: 1700,
+      refuelAmountL: 45,
+      detourDistanceM: 0,
+      detourDurationS: 600, // 10분
+      efficiencyKmPerL: 12,
+      timeValuePerMin: 200,
+    });
+    const tc = 1700 * 45;
+    expect(scores.minCost).toBe(tc);
+    expect(scores.minDistance).toBe(0);
+    expect(scores.balanced).toBe(Math.round(tc + (600 / 60) * 200));
+  });
+});
+
+// ─── passesT3Gate ────────────────────────────────────────────────────────────
+describe("passesT3Gate", () => {
+  it("충분히 저렴 → true", () => {
+    expect(passesT3Gate({
+      priceRefWon: 1800,
+      priceStationWon: 1600,
+      refuelAmountL: 45,
+      dPerpM: 100,
+      efficiencyKmPerL: 12,
+    })).toBe(true);
+  });
+
+  it("비싸거나 우회비가 절감분을 초과 → false", () => {
+    expect(passesT3Gate({
+      priceRefWon: 1700,
+      priceStationWon: 1700,
+      refuelAmountL: 45,
+      dPerpM: 10_000,
+      efficiencyKmPerL: 12,
+    })).toBe(false);
+  });
+});
+
+// ─── exceedsDetourCap ────────────────────────────────────────────────────────
+describe("exceedsDetourCap", () => {
+  it("우회가 기본경로 × CAP_RATIO 초과 → true", () => {
+    // DETOUR_CAP_RATIO = 0.5
+    expect(exceedsDetourCap(6000, 10000)).toBe(true);
+  });
+
+  it("우회가 기본경로 × CAP_RATIO 이하 → false", () => {
+    expect(exceedsDetourCap(4999, 10000)).toBe(false);
+    expect(exceedsDetourCap(5000, 10000)).toBe(false);
+  });
+});
+
+// ─── median ──────────────────────────────────────────────────────────────────
+describe("median", () => {
+  it("홀수 개 → 가운데 값", () => {
+    expect(median([3, 1, 2])).toBe(2);
+  });
+
+  it("짝수 개 → 중간 두 값의 평균(반올림)", () => {
+    expect(median([1, 2, 3, 4])).toBe(3); // (2+3)/2=2.5 → round=3
+  });
+
+  it("빈 배열 → 예외", () => {
+    expect(() => median([])).toThrow();
+  });
+
+  it("원본 배열 변경 없음", () => {
+    const arr = [3, 1, 2];
+    median(arr);
+    expect(arr).toEqual([3, 1, 2]);
+  });
+});
+
+// ─── removeOutliers ──────────────────────────────────────────────────────────
+describe("removeOutliers", () => {
+  it("정상 분포 → 거의 변화 없음", () => {
+    const prices = [1700, 1710, 1720, 1730, 1740];
+    const result = removeOutliers(prices);
+    expect(result.length).toBe(prices.length);
+  });
+
+  it("극단값 제거", () => {
+    // 10개의 정상값 + 1개의 이상치 → 이상치가 ±3σ 밖에 위치
+    const normal = Array<number>(10).fill(1700);
+    const prices = [...normal, 10000];
+    const result = removeOutliers(prices);
+    expect(result).not.toContain(10000);
+    expect(result.length).toBeLessThan(prices.length);
+  });
+
+  it("1개 이하 → 원본 반환", () => {
+    expect(removeOutliers([])).toEqual([]);
+    expect(removeOutliers([1700])).toEqual([1700]);
+  });
+});
+
+// ─── computeReferencePrice ───────────────────────────────────────────────────
+describe("computeReferencePrice — P_ref 폴백 단계", () => {
+  it("T1+T2 2개 이상 → MEDIAN_T1T2", () => {
+    const result = computeReferencePrice([1700, 1720]);
+    expect(result?.source).toBe("MEDIAN_T1T2");
+    expect(result?.price).toBe(1710);
+  });
+
+  it("T1+T2 1개 & sigunguAvg 있음 → SIGUNGU_AVG", () => {
+    const result = computeReferencePrice([1700], 1750);
+    expect(result?.source).toBe("SIGUNGU_AVG");
+    expect(result?.price).toBe(1750);
+  });
+
+  it("T1+T2 0개 & sigunguAvg 없음 → null", () => {
+    expect(computeReferencePrice([])).toBeNull();
+  });
+
+  it("후보 1개 & sigunguAvg 없음 → null", () => {
+    expect(computeReferencePrice([1700])).toBeNull();
+  });
+});
+
+// ─── 추정 계산 ───────────────────────────────────────────────────────────────
+describe("estimateDetourDistanceM", () => {
+  it(`DETOUR_ESTIMATE_FACTOR(${DETOUR_ESTIMATE_FACTOR}) × d_perp`, () => {
+    expect(estimateDetourDistanceM(1000)).toBe(DETOUR_ESTIMATE_FACTOR * 1000);
+  });
+});
+
+describe("estimateDetourDurationS", () => {
+  it(`AVG_SPEED(${AVG_SPEED}km/h) 기준 시간 추정`, () => {
+    // 10km → 10/50h → 0.2h → 720s
+    expect(estimateDetourDurationS(10_000)).toBeCloseTo(720, 5);
+  });
+});
+
+// ─── 유틸 ────────────────────────────────────────────────────────────────────
+describe("유틸", () => {
+  it("durationSToMin: 초→분 반올림", () => {
+    expect(durationSToMin(90)).toBe(2);
+    expect(durationSToMin(60)).toBe(1);
+    expect(durationSToMin(30)).toBe(1);
+    expect(durationSToMin(29)).toBe(0);
+  });
+
+  it("distanceMToKm: m→km 소수 첫째 자리", () => {
+    expect(distanceMToKm(1500)).toBe(1.5);
+    expect(distanceMToKm(1000)).toBe(1.0);
+    expect(distanceMToKm(2340)).toBe(2.3);
+  });
+
+  it("scoreByMode: 모드별 점수 선택", () => {
+    const scores = { minDistance: 1000, minCost: 80000, balanced: 82000 };
+    expect(scoreByMode(scores, "minDistance")).toBe(1000);
+    expect(scoreByMode(scores, "minCost")).toBe(80000);
+    expect(scoreByMode(scores, "balanced")).toBe(82000);
+  });
+});

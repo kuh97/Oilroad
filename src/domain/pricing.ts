@@ -1,0 +1,201 @@
+/**
+ * 금액 계산 — NetSaving, TotalCost, Score, P_ref
+ * PRODUCT.md §6.3 · §8
+ *
+ * 모든 함수 시그니처는 m·s·원(₩ 정수)을 받습니다 — AGENTS.md §7.4.
+ * 연비(km/L), 시간가치(원/분) 변환은 함수 내부에서만 합니다.
+ */
+
+import { DETOUR_ESTIMATE_FACTOR, AVG_SPEED, V_TIME, OUTLIER_SIGMA, P_REF_MIN_BASE, DETOUR_CAP_RATIO } from "./params";
+import type { Mode, RefPriceSource, Scores } from "./types";
+
+// ─── 우회 추정 ───────────────────────────────────────────────────────────────
+
+/**
+ * 우회 거리 추정 (m).
+ * ΔD̂ = DETOUR_ESTIMATE_FACTOR × d_perp
+ */
+export function estimateDetourDistanceM(dPerpM: number): number {
+  return DETOUR_ESTIMATE_FACTOR * dPerpM;
+}
+
+/**
+ * 우회 시간 추정 (초).
+ * ΔT̂ = ΔD̂ / 1000 / AVG_SPEED × 3600
+ */
+export function estimateDetourDurationS(detourDistanceM: number): number {
+  return (detourDistanceM / 1000 / AVG_SPEED) * 3600;
+}
+
+// ─── 핵심 계산 ───────────────────────────────────────────────────────────────
+
+/**
+ * 순절감액 (원, 정수).
+ * NetSaving = (P_ref − P_s) × Q − (ΔD / 1000 / E) × P_s
+ *
+ * 음수 가능 (T1·T2는 음수여도 목록 유지, T3는 음수면 제거).
+ */
+export function netSaving(args: {
+  priceRefWon: number;       // P_ref (원/L)
+  priceStationWon: number;   // P_s (원/L)
+  refuelAmountL: number;     // Q (L)
+  detourDistanceM: number;   // ΔD (m)
+  efficiencyKmPerL: number;  // E (km/L)
+}): number {
+  const { priceRefWon, priceStationWon, refuelAmountL, detourDistanceM, efficiencyKmPerL } = args;
+  const saving = (priceRefWon - priceStationWon) * refuelAmountL;
+  const detourFuelCost = (detourDistanceM / 1000 / efficiencyKmPerL) * priceStationWon;
+  return Math.round(saving - detourFuelCost);
+}
+
+/**
+ * 여정 총비용 (원, 정수).
+ * TotalCost = Q × P_s + (ΔD / 1000 / E) × P_s
+ */
+export function totalCost(args: {
+  priceStationWon: number;
+  refuelAmountL: number;
+  detourDistanceM: number;
+  efficiencyKmPerL: number;
+}): number {
+  const { priceStationWon, refuelAmountL, detourDistanceM, efficiencyKmPerL } = args;
+  const fuelCost = priceStationWon * refuelAmountL;
+  const detourFuelCost = (detourDistanceM / 1000 / efficiencyKmPerL) * priceStationWon;
+  return Math.round(fuelCost + detourFuelCost);
+}
+
+/**
+ * 3가지 모드 점수 계산.
+ * 모두 최소화 문제 — PRODUCT.md §8.
+ */
+export function computeScores(args: {
+  priceStationWon: number;
+  refuelAmountL: number;
+  detourDistanceM: number;   // ΔD (m)
+  detourDurationS: number;   // ΔT (s)
+  efficiencyKmPerL: number;
+  timeValuePerMin: number;   // V_TIME (원/분)
+}): Scores {
+  const { priceStationWon, refuelAmountL, detourDistanceM, detourDurationS, efficiencyKmPerL, timeValuePerMin } = args;
+
+  const tc = totalCost({ priceStationWon, refuelAmountL, detourDistanceM, efficiencyKmPerL });
+
+  return {
+    minDistance: Math.round(detourDistanceM),
+    minCost: tc,
+    balanced: Math.round(tc + (detourDurationS / 60) * timeValuePerMin),
+  };
+}
+
+// ─── T3 게이트 ───────────────────────────────────────────────────────────────
+
+/**
+ * T3 후보가 목록 진입 게이트를 통과하는지 확인.
+ * ΔD̂(추정) 기준으로 1회만 적용합니다 — AGENTS.md §5 불변식 6.
+ */
+export function passesT3Gate(args: {
+  priceRefWon: number;
+  priceStationWon: number;
+  refuelAmountL: number;
+  dPerpM: number;
+  efficiencyKmPerL: number;
+}): boolean {
+  const estimatedDetour = estimateDetourDistanceM(args.dPerpM);
+  const saving = netSaving({
+    priceRefWon: args.priceRefWon,
+    priceStationWon: args.priceStationWon,
+    refuelAmountL: args.refuelAmountL,
+    detourDistanceM: estimatedDetour,
+    efficiencyKmPerL: args.efficiencyKmPerL,
+  });
+  return saving > 0;
+}
+
+/**
+ * 우회 거리가 기본 경로 대비 DETOUR_CAP_RATIO 초과 여부.
+ * 초과 시 후보 제거 (정밀 계산 이후에만 적용).
+ */
+export function exceedsDetourCap(detourDistanceM: number, baseDistanceM: number): boolean {
+  return detourDistanceM > baseDistanceM * DETOUR_CAP_RATIO;
+}
+
+// ─── P_ref 계산 ──────────────────────────────────────────────────────────────
+
+/**
+ * 중앙값 계산.
+ * 입력 배열은 변경하지 않습니다.
+ */
+export function median(prices: number[]): number {
+  if (prices.length === 0) throw new Error("median: 빈 배열");
+  const sorted = [...prices].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[mid];
+  return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+/**
+ * T1+T2 풀에서 이상치(±OUTLIER_SIGMA σ)를 제거한 후 P_ref 계산.
+ *
+ * @param t1t2Prices T1+T2 주유소 가격 배열 (원/L)
+ * @param sigunguAvg 시군구 평균가 폴백 (없으면 undefined)
+ * @returns { price, source }
+ */
+export function computeReferencePrice(
+  t1t2Prices: number[],
+  sigunguAvg?: number,
+): { price: number; source: RefPriceSource } | null {
+  // 이상치 제거
+  const pool = removeOutliers(t1t2Prices);
+
+  if (pool.length >= P_REF_MIN_BASE) {
+    return { price: median(pool), source: "MEDIAN_T1T2" };
+  }
+
+  if (sigunguAvg !== undefined) {
+    return { price: sigunguAvg, source: "SIGUNGU_AVG" };
+  }
+
+  return null; // A14: 절감액 표시 생략
+}
+
+/**
+ * 중앙값 ± OUTLIER_SIGMA × 표준편차 벗어나는 값 제거.
+ */
+export function removeOutliers(prices: number[]): number[] {
+  if (prices.length < 2) return prices;
+
+  const med = median(prices);
+  const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const variance = prices.reduce((s, p) => s + (p - mean) ** 2, 0) / prices.length;
+  const stdDev = Math.sqrt(variance);
+
+  if (stdDev === 0) return prices;
+
+  const lower = med - OUTLIER_SIGMA * stdDev;
+  const upper = med + OUTLIER_SIGMA * stdDev;
+  return prices.filter((p) => p >= lower && p <= upper);
+}
+
+// ─── 정렬 ────────────────────────────────────────────────────────────────────
+
+/** 모드에 따른 점수 선택 */
+export function scoreByMode(scores: Scores, mode: Mode): number {
+  switch (mode) {
+    case "minCost":     return scores.minCost;
+    case "minDistance": return scores.minDistance;
+    case "balanced":    return scores.balanced;
+  }
+}
+
+/** ΔT (초) → 분 반올림 */
+export function durationSToMin(durationS: number): number {
+  return Math.round(durationS / 60);
+}
+
+/** ΔD (m) → km (소수 첫째 자리) */
+export function distanceMToKm(distanceM: number): number {
+  return Math.round(distanceM / 100) / 10;
+}
+
+/** V_TIME 기본값 export (테스트·UI에서 참조용) */
+export { V_TIME };
