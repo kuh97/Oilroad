@@ -1,0 +1,19 @@
+{
+  "name": "oilroad-verify-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify:coord":          "tsx --env-file=../.env.local verify/coord.ts",
+    "verify:standard-data":  "tsx --env-file=../.env.local verify/standard-data.ts",
+    "verify:price-time":     "tsx --env-file=../.env.local verify/price-time.ts",
+    "verify:upstash":        "tsx --env-file=../.env.local verify/upstash.ts"
+  },
+  "devDependencies": {
+    "tsx":       "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "proj4":      "^2.15.0",
+    "@types/proj4": "^2.5.5",
+    "csv-parse":  "^5.6.0"
+  }
+}

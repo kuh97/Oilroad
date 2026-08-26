@@ -1,0 +1,32 @@
+# ── 환경변수 ───────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── 의존성 ────────────────────────────────
+node_modules/
+
+# ── Next.js 빌드 ──────────────────────────
+.next/
+out/
+
+# ── 검증 데이터 (용량 크고 공개 데이터) ────
+data/
+scripts/data/
+!scripts/data/.gitkeep
+
+# ── 테스트 픽스처는 커밋 대상 ─────────────
+# tests/fixtures/ 는 제외하지 않음
+# verify:price-time이 저장한 실제 응답을 MSW에서 사용
+
+# ── OS / 에디터 ───────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+
+# ── 타입스크립트 ──────────────────────────
+*.tsbuildinfo
+
+# ── Vercel ────────────────────────────────
+.vercel

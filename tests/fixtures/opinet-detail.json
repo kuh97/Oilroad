@@ -1,0 +1,45 @@
+{
+  "RESULT": {
+    "OIL": [
+      {
+        "UNI_ID": "A0009916",
+        "POLL_DIV_CO": "SKE",
+        "GPOLL_DIV_CO": "   ",
+        "OS_NM": "대신석유(주)대우주유소",
+        "VAN_ADR": "서울 서초구 양재동 216",
+        "NEW_ADR": "서울 서초구 양재대로 173 (양재동)",
+        "TEL": "02-572-0567",
+        "SIGUNCD": "0121",
+        "LPG_YN": "N",
+        "MAINT_YN": "N",
+        "CAR_WASH_YN": "Y",
+        "KPETRO_YN": "N",
+        "CVS_YN": "Y",
+        "GOOD_YN": "Y",
+        "GOOD_YN5": "N",
+        "GIS_X_COOR": 315069.06196,
+        "GIS_Y_COOR": 540497.58276,
+        "OIL_PRICE": [
+          {
+            "PRODCD": "B034",
+            "PRICE": 2357,
+            "TRADE_DT": "20260826",
+            "TRADE_TM": "074849"
+          },
+          {
+            "PRODCD": "B027",
+            "PRICE": 1847,
+            "TRADE_DT": "20260826",
+            "TRADE_TM": "075719"
+          },
+          {
+            "PRODCD": "D047",
+            "PRICE": 1847,
+            "TRADE_DT": "20260826",
+            "TRADE_TM": "075046"
+          }
+        ]
+      }
+    ]
+  }
+}
