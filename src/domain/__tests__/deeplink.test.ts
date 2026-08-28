@@ -59,14 +59,21 @@ describe("buildDeeplink — 티맵", () => {
     expect(url).toMatch(/^tmap:\/\/route/);
   });
 
-  it("목적지 좌표(rGoX/rGoY)와 이름(rGoName) 포함", () => {
+  it("주유소 좌표(rGoX/rGoY)와 이름(rGoName)을 목적지로 전달 (PRODUCT.md §5.5)", () => {
     const url = buildDeeplink({ ...BASE, app: "TMAP" });
-    expect(url).toContain("rGoX=129"); // lng
-    expect(url).toContain("rGoY=35.1"); // lat
-    expect(url).toContain("rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80"); // "목적지" URL-encoded
+    expect(url).toContain(`rGoX=${WP.lng}`); // lng
+    expect(url).toContain(`rGoY=${WP.lat}`); // lat
+    expect(url).toContain(`rGoName=${encodeURIComponent("경유주유소")}`);
   });
 
-  it("경유지 파라미터 포함하지 않음 (티맵 미지원)", () => {
+  it("최종 목적지를 전달하지 않는다 — 티맵은 주유소까지만 안내", () => {
+    const url = buildDeeplink({ ...BASE, app: "TMAP" });
+    expect(url).not.toContain(`rGoX=${DEST.lng}`);
+    expect(url).not.toContain(`rGoY=${DEST.lat}`);
+    expect(url).not.toContain(encodeURIComponent("목적지"));
+  });
+
+  it("경유지·출발지 파라미터 포함하지 않음 (티맵 미지원)", () => {
     const url = buildDeeplink({ ...BASE, app: "TMAP" });
     expect(url).not.toContain("v1");
     expect(url).not.toContain("waypoint");
@@ -92,7 +99,7 @@ describe("buildDeeplink — 옵션 파라미터 미지정", () => {
     expect(url).toContain("appname=");
   });
 
-  it("티맵: destinationName 없이도 동작 (rGoName 빈 문자열)", () => {
+  it("티맵: waypointName 없이도 동작 (rGoName 빈 문자열)", () => {
     const url = buildDeeplink({ ...MINIMAL, app: "TMAP" });
     expect(url).toContain("rGoName=");
   });

@@ -63,12 +63,14 @@ function buildNaverDeeplink(input: DeeplinkInput): string {
 }
 
 function buildTmapDeeplink(input: DeeplinkInput): string {
-  const { destination, destinationName } = input;
-  // 티맵은 목적지만 지원 (경유지 미지원 — AGENTS.md §12)
+  const { waypoint, waypointName } = input;
+  // 티맵은 경유지를 전달할 수 없으므로 주유소를 목적지로 넣습니다 (PRODUCT.md §5.5).
+  // 최종 목적지는 주유 후 사용자가 다시 입력합니다 — UI에 그 안내를 붙입니다.
+  // 경유지 파라미터(rV1*)는 실기기에서 무시됨을 확인 (ARCHITECTURE.md §12 ⑧, 2026-08-28).
   const params = new URLSearchParams({
-    rGoName: destinationName ?? "",
-    rGoX: String(destination.lng),
-    rGoY: String(destination.lat),
+    rGoName: waypointName ?? "",
+    rGoX: String(waypoint.lng),
+    rGoY: String(waypoint.lat),
   });
   return `tmap://route?${params.toString()}`;
 }
