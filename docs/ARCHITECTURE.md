@@ -114,13 +114,16 @@ oilroad/
 │   ├── import-standard-data.ts         # pnpm data:import-standard
 │   ├── sync-sigungu-avg.ts             # pnpm data:sync-sigungu (cron도 이걸 호출)
 │   └── verify/
-│       ├── coord.ts                    # verify:coord          (③)  Phase 0
-│       ├── standard-data.ts            # verify:standard-data  (②)  Phase 0
-│       ├── price-time.ts               # verify:price-time     (⑪)  Phase 0
-│       ├── upstash.ts                  # verify:upstash        (⑬)  Phase 0
-│       ├── coverage.ts                 # verify:coverage       (⑫)  Phase 5
-│       ├── t3-rate.ts                  # verify:t3-rate              Phase 5
-│       └── uturn.ts                    # verify:uturn          (④)  Phase 5
+│       ├── _shared.ts                  # 콘솔 출력 · requireEnv 등 공통 유틸
+│       ├── _routes.ts                  # Phase 5 측정용 노선 4개 (§10 Phase 5)
+│       ├── _measure-shared.ts          # Phase 5 스크립트 공용 — 예산 확인·오피넷 호출 래퍼
+│       ├── coord.mts                   # verify:coord          (③)  Phase 0
+│       ├── standard-data.mts           # verify:standard-data  (②)  Phase 0
+│       ├── price-time.mts              # verify:price-time     (⑪)  Phase 0
+│       ├── upstash.mts                 # verify:upstash        (⑬)  Phase 0
+│       ├── coverage.mts                # verify:coverage       (⑫)  Phase 5
+│       ├── t3-rate.mts                 # verify:t3-rate              Phase 5
+│       └── uturn.mts                   # verify:uturn          (④)  Phase 5
 └── tests/
     ├── fixtures/                       # ★ 실 응답 (MSW용) — 오피넷은 Phase 0, 카카오는 Phase 4에서 저장
     │   ├── opinet-radius.json
@@ -131,6 +134,8 @@ oilroad/
     ├── msw/                            # 핸들러 정의
     └── e2e/                            # Playwright 2개
 ```
+
+> **`scripts/verify/`는 루트 프로젝트에서 `tsx`로 실행합니다** (`pnpm verify:*`). Phase 0 초기엔 `scripts/` 밑에 별도 `package.json`을 둔 독립 프로젝트였지만(Next.js가 아직 없어서), Phase 5부터 `@/domain`·`@/infra`를 그대로 재사용해야 해서 루트로 흡수했습니다. 진입 스크립트가 `.mts`인 이유는 최상위 `await`를 쓰기 때문 — 루트 `package.json`엔 `"type": "module"`이 없어서 확장자로 ESM임을 명시해야 합니다(루트의 `vitest.config.mts`와 같은 이유). `_`로 시작하는 파일은 진입점이 아니라 공용 유틸입니다.
 
 ### 2.1 import 방향
 
@@ -1173,10 +1178,6 @@ Client → domain/deeplink.build(app, origin, station, destination)
 
 | #   | 확인                                          | 방법                                        | 실패 시 영향                                                                             | 시급도      |
 | --- | --------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------- |
-| ③   | **KATEC ↔ WGS84 변환 정확도** (50m 이내)      | `verify:coord`                              | 모든 거리 계산이 어긋남                                                                  | **Phase 0** |
-| ⑬   | **Upstash 무료 티어 일일 명령 수 한도**       | `verify:upstash`                            | 오피넷과 별개의 두 번째 병목 → 캐시 전략 재설계 (§8)                                     | **Phase 0** |
-| ⑫   | **샘플링 커버리지·T2 후보 누락률**            | `verify:coverage`                           | `SAMPLE_INTERVAL`·`OFFSET`·`T2_MAX`·`T3_MAX` 확정 불가 ([`PRODUCT.md`](PRODUCT.md) §7.2) | **Phase 5** |
-| ④   | 경로 API가 유턴·중앙분리대 반영               | `verify:uturn`                              | 반영 안 되면 신뢰도 근간 붕괴. `DETOUR_ESTIMATE_FACTOR` 보정 불가                        | **Phase 5** |
 | ⑤   | 딥링크 실기기 동작 + **SSE 폴백 동작**        | iOS Safari / Android Chrome / 카카오톡 인앱 | 최종 전환 지점 붕괴                                                                      | Phase 10    |
 | ⑦   | 오피넷 상업적 이용 범위                       | 한국석유공사 문의 (052-216-2514)            | 수익화 경로 차단                                                                         | 수익화 전   |
 | ⑧   | 티맵 경유지 딥링크 공식 지원                  | TMAP 개발자 문의                            | 현재 폴백 유지                                                                           | 낮음        |
@@ -1193,8 +1194,12 @@ Client → domain/deeplink.build(app, origin, station, destination)
 | ③   | KATEC ↔ WGS84 변환 정확도 | **통과.** 왕복 오차 최대 0.01m (기준 50m). `towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43` 그대로 사용. EPSG:5179 오차 0.0000m |
 | ⑪   | 반경검색 응답의 가격 기준시각 | **기준시각 없음.** 반경검색·상세정보 양쪽 모두 `TRADE_DT`/`TRADE_TM` 미포함. **오피넷 갱신 스케줄 기반 근사 방식 채택** (§5.1). 오피넷 API 파라미터명은 `certkey` (not `code`) |
 | ⑬   | Upstash 무료 티어 일일 명령 수 한도 | **10,000회/일.** 예상 사용량 665회/일 — 여유 충분. `INCRBY` 원자성 확인 |
+| ⑫   | 샘플링 커버리지·T2 후보 누락률 | **누락률 0%.** 실제 노선 3개(성남↔춘천·원주↔속초·강남↔수원)에서 `SAMPLE_INTERVAL`(8,000m) 간격과 촘촘한 간격(2,000m)의 T1+T2 결과가 완전히 일치. **`SAMPLE_INTERVAL=8,000m` 그대로 유지** (`verify:coverage`, 2026-08-28) |
+| ④   | 경로 API가 유턴·중앙분리대 반영 | **반영됨 — 확인.** 실제 후보로 검증한 결과 `d_perp` 대비 실제 우회거리 비율이 노선별 중앙값 0.67~2.11(통합 약 1.4)로 현재 `DETOUR_ESTIMATE_FACTOR=2.0`과 같은 자릿수. 동시에 중앙분리대 건너편·고속도로 반대 방향 충전소에서 실제 우회가 추정의 **100~425배**에 달하는 사례를 실측으로 확인 — `PRODUCT.md` §6.5 표가 이론으로 적어둔 위험이 실측으로 재현됨. **`DETOUR_ESTIMATE_FACTOR=2.0` 유지** (표본이 노선당 6곳뿐이라 재조정 근거 부족, `verify:uturn`, 2026-08-28) |
 
 **Phase 0의 넷(②③⑪⑬)이 코드 작성 전 필수입니다.** `FEATURE_EXPANSION_ENABLED`는 오피넷 한도가 유지되는 한 계속 신중하게 다루십시오.
+
+**Phase 5 미해결 — `MIN_CANDIDATES`(확장 발동 임계값)·`OFFSET`(확장 오프셋 거리)는 이번 실측으로 확정하지 못했습니다.** 테스트한 4개 노선(위 3개 + 사용자 제보 초단거리 노선) 전부 `T1+T2 ≥ MIN_CANDIDATES(3)`이라 확장 수집(STEP 6) 코드 경로 자체가 한 번도 실행되지 않았습니다. 지리산·태백산맥 산간처럼 훨씬 희소한 노선으로 추가 실측하거나, `search_event` 실사용 데이터(§16.4)로 나중에 확정하십시오. 값은 기본값(`MIN_CANDIDATES=3`, `OFFSET=10,000m`) 그대로 둡니다.
 
 ---
 

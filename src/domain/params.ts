@@ -10,15 +10,15 @@ export const T2_MAX = 3_000;     // m — 근처 (조금 벗어남)
 export const T3_MAX = 15_000;    // m — 우회 탐색 상한
 
 // ─── 수집 (§7.2) ────────────────────────────────────────────────────────────
-export const SAMPLE_INTERVAL = 8_000;  // m — 폴리라인 샘플 간격 (Phase 5 실측 후 보정)
-export const OFFSET = 10_000;          // m — 확장 수집 법선 오프셋
-export const MIN_CANDIDATES = 3;       // 개 — 확장 발동 임계값
+export const SAMPLE_INTERVAL = 8_000;  // m — 폴리라인 샘플 간격 (Phase 5 실측으로 확정 — 누락률 0%, PRODUCT.md §9.1)
+export const OFFSET = 10_000;          // m — 확장 수집 법선 오프셋 (미확정 — PRODUCT.md §9.1, §11.3)
+export const MIN_CANDIDATES = 3;       // 개 — 확장 발동 임계값 (미확정 — Phase 5 실측 노선 전부 미발동, PRODUCT.md §9.1)
 
 // ─── 기준가 (§6.5, §8.2) ────────────────────────────────────────────────────
 export const P_REF_MIN_BASE = 2;  // 개 — 중앙값 사용 최소 T1+T2 수 (≠ MIN_CANDIDATES)
 
 // ─── 우회 추정 (§6.4) ────────────────────────────────────────────────────────
-export const DETOUR_ESTIMATE_FACTOR = 2.0;  // ΔD̂ = factor × d_perp (Phase 5 실측 후 보정)
+export const DETOUR_ESTIMATE_FACTOR = 2.0;  // ΔD̂ = factor × d_perp (Phase 5 실측으로 유지 — 중앙값 0.67~2.11, PRODUCT.md §9.1)
 export const DETOUR_CAP_RATIO = 0.5;        // 우회가 D_base 이 비율 초과 시 제외
 export const AVG_SPEED = 50;               // km/h — 추정 우회 시간 계산용
 

@@ -11,7 +11,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "verify:coord": "tsx --env-file=.env.local scripts/verify/coord.mts",
+    "verify:standard-data": "tsx --env-file=.env.local scripts/verify/standard-data.mts",
+    "verify:price-time": "tsx --env-file=.env.local scripts/verify/price-time.mts",
+    "verify:upstash": "tsx --env-file=.env.local scripts/verify/upstash.mts",
+    "verify:coverage": "tsx --env-file=.env.local scripts/verify/coverage.mts",
+    "verify:t3-rate": "tsx --env-file=.env.local scripts/verify/t3-rate.mts",
+    "verify:uturn": "tsx --env-file=.env.local scripts/verify/uturn.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -40,12 +47,14 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.5.2",
     "@vitest/coverage-v8": "^3.2.4",
+    "csv-parse": "^7.0.2",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "eslint-plugin-boundaries": "^5.0.1",
     "msw": "^2.7.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5",
     "vitest": "^3.2.4"
   },
