@@ -113,6 +113,14 @@ export interface SearchResult {
   warnings: string[];
 }
 
+// ─── 장소 검색 (F1 자동완성) ─────────────────────────────────────────────────
+
+export interface PlaceResult {
+  name: string;
+  address: string;
+  location: WGS84Point;
+}
+
 // ─── 입력 ────────────────────────────────────────────────────────────────────
 
 export interface Vehicle {

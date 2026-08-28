@@ -22,4 +22,7 @@ export const env = {
   get UPSTASH_REDIS_REST_TOKEN() { return required("UPSTASH_REDIS_REST_TOKEN"); },
   get REDIS_KEY_PREFIX() { return optional("REDIS_KEY_PREFIX", "dev"); },
   get CACHE_BYPASS() { return optional("CACHE_BYPASS", "false") === "true"; },
+  get KAKAO_REST_API_KEY() { return required("KAKAO_REST_API_KEY"); },
+  get KAKAO_MOBILITY_BASE_URL() { return optional("KAKAO_MOBILITY_BASE_URL", "https://apis-navi.kakaomobility.com"); },
+  get KAKAO_LOCAL_BASE_URL() { return optional("KAKAO_LOCAL_BASE_URL", "https://dapi.kakao.com"); },
 };

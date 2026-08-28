@@ -96,7 +96,7 @@ oilroad/
 │   │   └── event-service.ts
 │   ├── infra/
 │   │   ├── opinet/{client,mapper,katec,budget}.ts
-│   │   ├── kakao/{mobility,local}.ts
+│   │   ├── kakao/{schema,mapper,http,mobility,local}.ts
 │   │   ├── cache/{redis,keys}.ts       # Upstash REST 래퍼
 │   │   └── db/{schema,client,repositories}.ts   # Drizzle
 │   ├── store/
@@ -122,10 +122,11 @@ oilroad/
 │       ├── t3-rate.ts                  # verify:t3-rate              Phase 5
 │       └── uturn.ts                    # verify:uturn          (④)  Phase 5
 └── tests/
-    ├── fixtures/                       # ★ Phase 0에서 저장한 실 응답 (MSW용)
+    ├── fixtures/                       # ★ 실 응답 (MSW용) — 오피넷은 Phase 0, 카카오는 Phase 4에서 저장
     │   ├── opinet-radius.json
     │   ├── opinet-detail.json
     │   ├── kakao-directions.json
+    │   ├── kakao-directions-waypoint.json  # 경유지 1개 포함 응답
     │   └── kakao-local.json
     ├── msw/                            # 핸들러 정의
     └── e2e/                            # Playwright 2개
@@ -286,6 +287,27 @@ UI 문구: `"가격 기준: 오피넷 최근 갱신 {시각} 기준"` — "실�
 
 > **2026-07-21부터 카카오맵 API 무료 쿼터는 개발자 계정의 "첫 번째로 활성화한 앱"에만 제공됩니다.**
 > 두 번째 앱부터는 유료입니다. 따라서 **개발용·운영용 앱 키를 분리할 수 없습니다.** dev·prod가 단일 앱 키를 공유하며, 환경 오염은 §11.2의 방법으로 줄입니다.
+
+> **로컬 API는 콘솔에서 별도 활성화가 필요합니다.** "제품 설정 → 카카오맵"이 꺼져 있으면 키가 유효해도 `NotAuthorizedError: disabled OPEN_MAP_AND_LOCAL service`로 즉시 실패합니다. 길찾기(모빌리티)와는 별개 토글입니다.
+
+**응답 → 도메인 매핑 (`infra/kakao/mapper.ts`)**
+
+길찾기 응답은 `routes[0].sections[].roads[].vertexes`(경도·위도가 평탄화된 배열, `[lng, lat, lng, lat, ...]` 순서)를 순서대로 이어붙여 `BaseRoute.polyline`을 만듭니다. 기본 경로(R₀)·경유 경로(R_s) 모두 같은 구조라 매핑 함수를 공유합니다. `result_code !== 0`이면 경로 탐색 실패로 간주해 에러를 던집니다 — 그 라운드만 실패 처리하는 것은 `route-service`(Phase 7)의 몫입니다.
+
+| 카카오 (길찾기)              | 도메인 (`BaseRoute`) | 비고                          |
+| ----------------------------- | --------------------- | ----------------------------- |
+| `summary.distance`             | `distanceM`            | 미터, 정수                    |
+| `summary.duration`             | `durationS`            | 초, 정수                      |
+| `sections[].roads[].vertexes` | `polyline`             | `[lng,lat,...]` → `WGS84Point[]` |
+
+로컬 검색 응답의 `x`/`y`는 길찾기 API와 달리 **문자열**로 내려옵니다 (`"127.02..."`). 주소는 도로명(`road_address_name`) 우선, 없으면 지번(`address_name`) — `RefuelPoint`와 동일한 우선순위(PRODUCT.md §6.2)를 씁니다.
+
+| 카카오 (로컬 검색)     | 도메인 (`PlaceResult`) | 비고                          |
+| ----------------------- | ------------------------ | ----------------------------- |
+| `place_name`             | `name`                    |                               |
+| `road_address_name`      | `address`                 | 없으면 `address_name` 폴백    |
+| `x` (문자열)             | `location.lng`            | `Number()` 변환               |
+| `y` (문자열)             | `location.lat`            | `Number()` 변환               |
 
 ### 5.3 호출 예산
 
