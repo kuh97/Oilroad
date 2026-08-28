@@ -7,66 +7,65 @@
 
 ## 빠른 시작
 
-### 1. 프로젝트 루트에 스크립트 폴더 배치
+> **Phase 1 이후 갱신:** 이 스크립트들은 원래 Next.js와 별개인 `scripts/package.json` 독립 프로젝트였습니다. Phase 5부터 `@/domain`·`@/infra`를 그대로 재사용해야 해서 **루트 프로젝트로 흡수**했습니다 — `scripts/package.json`·`tsconfig.json`은 삭제되었고, 지금은 루트의 `tsx`로 실행합니다. 진입 스크립트가 `.mts`인 이유는 ARCHITECTURE.md §2 참고.
+
+### 1. 스크립트 폴더 구조
 
 ```
-oilroad/              ← Next.js 프로젝트 루트
+oilroad/              ← 프로젝트 루트
   scripts/
     _shared.ts
     verify/
-      coord.ts
-      standard-data.ts
-      price-time.ts
-      upstash.ts
-    package.json
-    tsconfig.json
+      _routes.ts           # Phase 5 측정용 노선 4개
+      _measure-shared.ts   # Phase 5 공용 — 예산 확인 등
+      coord.mts
+      standard-data.mts
+      price-time.mts
+      upstash.mts
+      coverage.mts
+      t3-rate.mts
+      uturn.mts
     README-phase0.md
-  .env.local           ← 환경변수
+  .env.local           ← 환경변수 (루트)
 ```
 
-### 2. 의존성 설치
-
-```bash
-# 프로젝트 루트 기준
-cd scripts
-pnpm install          # 또는 npm install
-```
-
-> **중요:** 이 스크립트는 Next.js 앱과 별개의 `package.json`을 씁니다.
-> 나중에 Next.js 프로젝트를 초기화(Phase 1)하면 `proj4`·`csv-parse`를
-> 루트 `package.json`의 devDependencies로 옮기고 `scripts/package.json`을
-> 삭제하십시오.
-
-### 3. 환경변수 설정
+### 2. 환경변수 설정
 
 `.env.local` (프로젝트 루트):
 
 ```bash
 OPINET_CERT_KEY=여기에_오피넷_인증키
+KAKAO_REST_API_KEY=여기에_카카오_REST_키
 UPSTASH_REDIS_REST_URL=https://...upstash.io
 UPSTASH_REDIS_REST_TOKEN=AX...
 REDIS_KEY_PREFIX=dev
 ```
 
-### 4. 실행 순서
+### 3. 실행 (루트에서)
 
-**반드시 이 순서로 실행하십시오.**
+**Phase 0 — 반드시 이 순서로 실행하십시오.**
 
 ```bash
-cd scripts
-
 # ① 좌표 변환 정확도 (가장 먼저 — 오피넷 호출 없음)
 pnpm verify:coord
 
 # ② 표준데이터 구조 확인 (파일 경로 지정)
 #    행안부 공공데이터포털에서 CSV를 먼저 내려받으십시오
-pnpm verify:standard-data ../data/full_oil_standard.csv
+pnpm verify:standard-data ./data/full_oil_standard.csv
 
 # ③ 오피넷 가격 기준시각 (오피넷 2~3회 호출)
 pnpm verify:price-time
 
 # ④ Upstash Redis 연결·한도 (Upstash 여러 회 호출)
 pnpm verify:upstash
+```
+
+**Phase 5 — 파라미터 확정용 (오피넷·카카오 다회 호출, `--yes` 없이는 계획만 출력).**
+
+```bash
+pnpm verify:coverage   -- --route=all --yes
+pnpm verify:t3-rate    -- --fuel=LPG --yes
+pnpm verify:uturn      -- --route=0 --yes
 ```
 
 ---
@@ -79,6 +78,9 @@ pnpm verify:upstash
 | `verify:standard-data` | **0회** | DB 마스터 전략 / 시설 필터 구현 방식 |
 | `verify:price-time` | **2~3회** | UI 불변식 "가격 기준시각" 구현 방식 |
 | `verify:upstash` | **~20회** (Redis) | 캐시 전략 유지 여부 |
+| `verify:coverage` (Phase 5) | 노선당 수십 회 — 실행 전 출력됨 | `SAMPLE_INTERVAL`·`OFFSET`·`T2_MAX`·`T3_MAX` |
+| `verify:t3-rate` (Phase 5) | 조합당 최대 수십 회 — 실행 전 출력됨 | `MIN_CANDIDATES`, T3 발동률·게이트 통과율 |
+| `verify:uturn` (Phase 5) | 1회 (카카오는 여러 회, 쿼터 넉넉함) | `DETOUR_ESTIMATE_FACTOR` 보정 |
 
 ---
 
