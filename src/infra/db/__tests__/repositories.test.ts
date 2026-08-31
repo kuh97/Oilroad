@@ -7,6 +7,8 @@ import {
   toSigunguAvgPriceInserts,
   bulkUpsertSigunguAvgPrices,
   findSigunguAvgPrice,
+  findSidoAvgPrice,
+  findNationalAvgPrice,
   type RefuelPointRow,
 } from "../repositories";
 import type { Db } from "../client";
@@ -266,6 +268,46 @@ describe("findSigunguAvgPrice — DB 접근", () => {
     const select = vi.fn(() => ({ from }));
 
     const result = await findSigunguAvgPrice("9999", "LPG", { select } as unknown as Db);
+    expect(result).toBeNull();
+  });
+});
+
+describe("findSidoAvgPrice — DB 접근", () => {
+  it("평균값이 있으면 반올림한 정수를 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([{ avgPrice: "1905.6" }]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findSidoAvgPrice("01", "GASOLINE", { select } as unknown as Db);
+    expect(result).toBe(1906);
+  });
+
+  it("평균값이 없으면(null) null을 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([{ avgPrice: null }]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findSidoAvgPrice("99", "LPG", { select } as unknown as Db);
+    expect(result).toBeNull();
+  });
+});
+
+describe("findNationalAvgPrice — DB 접근", () => {
+  it("평균값이 있으면 반올림한 정수를 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([{ avgPrice: "1780.2" }]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findNationalAvgPrice("DIESEL", { select } as unknown as Db);
+    expect(result).toBe(1780);
+  });
+
+  it("평균값이 없으면(null) null을 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([{ avgPrice: null }]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findNationalAvgPrice("LPG", { select } as unknown as Db);
     expect(result).toBeNull();
   });
 });

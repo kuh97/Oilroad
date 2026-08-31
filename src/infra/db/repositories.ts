@@ -7,7 +7,7 @@
  * BudgetStore 주입 패턴과 동일).
  */
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, avg, eq, inArray, like, sql } from "drizzle-orm";
 import { getDb, type Db } from "./client";
 import { refuelPoint, sigunguAvgPrice } from "./schema";
 import { mapDetailItem, FUEL_TO_PRODCD } from "@/infra/opinet/mapper";
@@ -208,4 +208,33 @@ export async function findSigunguAvgPrice(
     .from(sigunguAvgPrice)
     .where(and(eq(sigunguAvgPrice.sigunCd, sigunCd), eq(sigunguAvgPrice.prodCd, prodCd)));
   return row?.avgPrice ?? null;
+}
+
+/**
+ * P_ref 시도 평균 폴백 조회 — 시군구 평균가가 없을 때의 다음 단계 (PRODUCT.md §8).
+ * `sigun_cd`의 앞 2자리(시도코드)가 일치하는 행들을 평균 냅니다.
+ */
+export async function findSidoAvgPrice(
+  sidoPrefix2: string,
+  fuel: Fuel,
+  db: Db = getDb(),
+): Promise<number | null> {
+  const prodCd = FUEL_TO_PRODCD[fuel];
+  const [row] = await db
+    .select({ avgPrice: avg(sigunguAvgPrice.avgPrice) })
+    .from(sigunguAvgPrice)
+    .where(and(like(sigunguAvgPrice.sigunCd, `${sidoPrefix2}%`), eq(sigunguAvgPrice.prodCd, prodCd)));
+  return row?.avgPrice != null ? Math.round(Number(row.avgPrice)) : null;
+}
+
+/**
+ * P_ref 전국 평균 폴백 조회 — 시군구·시도 평균가가 모두 없을 때의 마지막 단계 (PRODUCT.md §8).
+ */
+export async function findNationalAvgPrice(fuel: Fuel, db: Db = getDb()): Promise<number | null> {
+  const prodCd = FUEL_TO_PRODCD[fuel];
+  const [row] = await db
+    .select({ avgPrice: avg(sigunguAvgPrice.avgPrice) })
+    .from(sigunguAvgPrice)
+    .where(eq(sigunguAvgPrice.prodCd, prodCd));
+  return row?.avgPrice != null ? Math.round(Number(row.avgPrice)) : null;
 }
