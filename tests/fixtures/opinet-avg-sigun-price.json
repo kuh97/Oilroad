@@ -1,0 +1,846 @@
+{
+  "RESULT": {
+    "OIL": [
+      {
+        "SIGUNCD": "0101",
+        "SIGUNNM": "서울 종로구",
+        "PRODCD": "B027",
+        "PRICE": 2102.57,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0101",
+        "SIGUNNM": "서울 종로구",
+        "PRODCD": "B034",
+        "PRICE": 2517.14,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0101",
+        "SIGUNNM": "서울 종로구",
+        "PRODCD": "C004",
+        "PRICE": 1825.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0101",
+        "SIGUNNM": "서울 종로구",
+        "PRODCD": "D047",
+        "PRICE": 2077.71,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0102",
+        "SIGUNNM": "서울 중구",
+        "PRODCD": "B027",
+        "PRICE": 2112.2,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0102",
+        "SIGUNNM": "서울 중구",
+        "PRODCD": "B034",
+        "PRICE": 2566.33,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0102",
+        "SIGUNNM": "서울 중구",
+        "PRODCD": "C004",
+        "PRICE": 1766.2,
+        "DIFF": -41.55
+      },
+      {
+        "SIGUNCD": "0102",
+        "SIGUNNM": "서울 중구",
+        "PRODCD": "D047",
+        "PRICE": 2078.4,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0103",
+        "SIGUNNM": "서울 동대문구",
+        "PRODCD": "B027",
+        "PRICE": 1877.87,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0103",
+        "SIGUNNM": "서울 동대문구",
+        "PRODCD": "B034",
+        "PRICE": 2303.4,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0103",
+        "SIGUNNM": "서울 동대문구",
+        "PRODCD": "C004",
+        "PRICE": 1645.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0103",
+        "SIGUNNM": "서울 동대문구",
+        "PRODCD": "D047",
+        "PRICE": 1862.73,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0103",
+        "SIGUNNM": "서울 동대문구",
+        "PRODCD": "K015",
+        "PRICE": 1157.75,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0104",
+        "SIGUNNM": "서울 성동구",
+        "PRODCD": "B027",
+        "PRICE": 1958.69,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0104",
+        "SIGUNNM": "서울 성동구",
+        "PRODCD": "B034",
+        "PRICE": 2468.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0104",
+        "SIGUNNM": "서울 성동구",
+        "PRODCD": "C004",
+        "PRICE": 1662.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0104",
+        "SIGUNNM": "서울 성동구",
+        "PRODCD": "D047",
+        "PRICE": 1925.75,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0104",
+        "SIGUNNM": "서울 성동구",
+        "PRODCD": "K015",
+        "PRICE": 1160.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0105",
+        "SIGUNNM": "서울 성북구",
+        "PRODCD": "B027",
+        "PRICE": 1904.6,
+        "DIFF": 5.0
+      },
+      {
+        "SIGUNCD": "0105",
+        "SIGUNNM": "서울 성북구",
+        "PRODCD": "B034",
+        "PRICE": 2367.45,
+        "DIFF": 9.09
+      },
+      {
+        "SIGUNCD": "0105",
+        "SIGUNNM": "서울 성북구",
+        "PRODCD": "C004",
+        "PRICE": 1692.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0105",
+        "SIGUNNM": "서울 성북구",
+        "PRODCD": "D047",
+        "PRICE": 1889.75,
+        "DIFF": 5.0
+      },
+      {
+        "SIGUNCD": "0105",
+        "SIGUNNM": "서울 성북구",
+        "PRODCD": "K015",
+        "PRICE": 1158.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0106",
+        "SIGUNNM": "서울 도봉구",
+        "PRODCD": "B027",
+        "PRICE": 1845.18,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0106",
+        "SIGUNNM": "서울 도봉구",
+        "PRODCD": "B034",
+        "PRICE": 2393.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0106",
+        "SIGUNNM": "서울 도봉구",
+        "PRODCD": "C004",
+        "PRICE": 1648.67,
+        "DIFF": 20.67
+      },
+      {
+        "SIGUNCD": "0106",
+        "SIGUNNM": "서울 도봉구",
+        "PRODCD": "D047",
+        "PRICE": 1829.09,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0106",
+        "SIGUNNM": "서울 도봉구",
+        "PRODCD": "K015",
+        "PRICE": 1154.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0107",
+        "SIGUNNM": "서울 서대문구",
+        "PRODCD": "B027",
+        "PRICE": 1881.54,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0107",
+        "SIGUNNM": "서울 서대문구",
+        "PRODCD": "B034",
+        "PRICE": 2293.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0107",
+        "SIGUNNM": "서울 서대문구",
+        "PRODCD": "C004",
+        "PRICE": 1750.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0107",
+        "SIGUNNM": "서울 서대문구",
+        "PRODCD": "D047",
+        "PRICE": 1863.46,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0107",
+        "SIGUNNM": "서울 서대문구",
+        "PRODCD": "K015",
+        "PRICE": 1167.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0108",
+        "SIGUNNM": "서울 은평구",
+        "PRODCD": "B027",
+        "PRICE": 1868.23,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0108",
+        "SIGUNNM": "서울 은평구",
+        "PRODCD": "B034",
+        "PRICE": 2259.57,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0108",
+        "SIGUNNM": "서울 은평구",
+        "PRODCD": "C004",
+        "PRICE": 1764.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0108",
+        "SIGUNNM": "서울 은평구",
+        "PRODCD": "D047",
+        "PRICE": 1851.38,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0108",
+        "SIGUNNM": "서울 은평구",
+        "PRODCD": "K015",
+        "PRICE": 1164.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0109",
+        "SIGUNNM": "서울 마포구",
+        "PRODCD": "B027",
+        "PRICE": 1895.8,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0109",
+        "SIGUNNM": "서울 마포구",
+        "PRODCD": "B034",
+        "PRICE": 2352.43,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0109",
+        "SIGUNNM": "서울 마포구",
+        "PRODCD": "C004",
+        "PRICE": 1697.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0109",
+        "SIGUNNM": "서울 마포구",
+        "PRODCD": "D047",
+        "PRICE": 1871.8,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0110",
+        "SIGUNNM": "서울 용산구",
+        "PRODCD": "B027",
+        "PRICE": 2082.27,
+        "DIFF": -15.23
+      },
+      {
+        "SIGUNCD": "0110",
+        "SIGUNNM": "서울 용산구",
+        "PRODCD": "B034",
+        "PRICE": 2610.64,
+        "DIFF": -7.03
+      },
+      {
+        "SIGUNCD": "0110",
+        "SIGUNNM": "서울 용산구",
+        "PRODCD": "C004",
+        "PRICE": 1649.0,
+        "DIFF": -0.17
+      },
+      {
+        "SIGUNCD": "0110",
+        "SIGUNNM": "서울 용산구",
+        "PRODCD": "D047",
+        "PRICE": 2023.73,
+        "DIFF": -37.6
+      },
+      {
+        "SIGUNCD": "0111",
+        "SIGUNNM": "서울 영등포구",
+        "PRODCD": "B027",
+        "PRICE": 1904.13,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0111",
+        "SIGUNNM": "서울 영등포구",
+        "PRODCD": "B034",
+        "PRICE": 2422.53,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0111",
+        "SIGUNNM": "서울 영등포구",
+        "PRODCD": "C004",
+        "PRICE": 1579.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0111",
+        "SIGUNNM": "서울 영등포구",
+        "PRODCD": "D047",
+        "PRICE": 1883.17,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0111",
+        "SIGUNNM": "서울 영등포구",
+        "PRODCD": "K015",
+        "PRICE": 1154.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0112",
+        "SIGUNNM": "서울 동작구",
+        "PRODCD": "B027",
+        "PRICE": 1924.43,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0112",
+        "SIGUNNM": "서울 동작구",
+        "PRODCD": "B034",
+        "PRICE": 2367.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0112",
+        "SIGUNNM": "서울 동작구",
+        "PRODCD": "C004",
+        "PRICE": 1660.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0112",
+        "SIGUNNM": "서울 동작구",
+        "PRODCD": "D047",
+        "PRICE": 1895.29,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0112",
+        "SIGUNNM": "서울 동작구",
+        "PRODCD": "K015",
+        "PRICE": 1159.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0113",
+        "SIGUNNM": "서울 강남구",
+        "PRODCD": "B027",
+        "PRICE": 2029.04,
+        "DIFF": 1.11
+      },
+      {
+        "SIGUNCD": "0113",
+        "SIGUNNM": "서울 강남구",
+        "PRODCD": "B034",
+        "PRICE": 2517.54,
+        "DIFF": 1.25
+      },
+      {
+        "SIGUNCD": "0113",
+        "SIGUNNM": "서울 강남구",
+        "PRODCD": "C004",
+        "PRICE": 1605.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0113",
+        "SIGUNNM": "서울 강남구",
+        "PRODCD": "D047",
+        "PRICE": 1995.67,
+        "DIFF": 1.11
+      },
+      {
+        "SIGUNCD": "0113",
+        "SIGUNNM": "서울 강남구",
+        "PRODCD": "K015",
+        "PRICE": 1156.4,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0114",
+        "SIGUNNM": "서울 강동구",
+        "PRODCD": "B027",
+        "PRICE": 1884.55,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0114",
+        "SIGUNNM": "서울 강동구",
+        "PRODCD": "B034",
+        "PRICE": 2347.43,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0114",
+        "SIGUNNM": "서울 강동구",
+        "PRODCD": "C004",
+        "PRICE": 1740.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0114",
+        "SIGUNNM": "서울 강동구",
+        "PRODCD": "D047",
+        "PRICE": 1870.36,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0114",
+        "SIGUNNM": "서울 강동구",
+        "PRODCD": "K015",
+        "PRICE": 1160.33,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0115",
+        "SIGUNNM": "서울 강서구",
+        "PRODCD": "B027",
+        "PRICE": 1872.06,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0115",
+        "SIGUNNM": "서울 강서구",
+        "PRODCD": "B034",
+        "PRICE": 2306.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0115",
+        "SIGUNNM": "서울 강서구",
+        "PRODCD": "C004",
+        "PRICE": 1689.33,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0115",
+        "SIGUNNM": "서울 강서구",
+        "PRODCD": "D047",
+        "PRICE": 1853.44,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0115",
+        "SIGUNNM": "서울 강서구",
+        "PRODCD": "K015",
+        "PRICE": 1139.1,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0116",
+        "SIGUNNM": "서울 구로구",
+        "PRODCD": "B027",
+        "PRICE": 1891.13,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0116",
+        "SIGUNNM": "서울 구로구",
+        "PRODCD": "B034",
+        "PRICE": 2316.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0116",
+        "SIGUNNM": "서울 구로구",
+        "PRODCD": "D047",
+        "PRICE": 1872.69,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0116",
+        "SIGUNNM": "서울 구로구",
+        "PRODCD": "K015",
+        "PRICE": 1159.25,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0117",
+        "SIGUNNM": "서울 관악구",
+        "PRODCD": "B027",
+        "PRICE": 1879.85,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0117",
+        "SIGUNNM": "서울 관악구",
+        "PRODCD": "B034",
+        "PRICE": 2348.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0117",
+        "SIGUNNM": "서울 관악구",
+        "PRODCD": "C004",
+        "PRICE": 1577.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0117",
+        "SIGUNNM": "서울 관악구",
+        "PRODCD": "D047",
+        "PRICE": 1855.23,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0117",
+        "SIGUNNM": "서울 관악구",
+        "PRODCD": "K015",
+        "PRICE": 1159.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0118",
+        "SIGUNNM": "서울 노원구",
+        "PRODCD": "B027",
+        "PRICE": 1869.93,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0118",
+        "SIGUNNM": "서울 노원구",
+        "PRODCD": "B034",
+        "PRICE": 2432.78,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0118",
+        "SIGUNNM": "서울 노원구",
+        "PRODCD": "C004",
+        "PRICE": 1625.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0118",
+        "SIGUNNM": "서울 노원구",
+        "PRODCD": "D047",
+        "PRICE": 1858.57,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0118",
+        "SIGUNNM": "서울 노원구",
+        "PRODCD": "K015",
+        "PRICE": 1155.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0119",
+        "SIGUNNM": "서울 양천구",
+        "PRODCD": "B027",
+        "PRICE": 1851.43,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0119",
+        "SIGUNNM": "서울 양천구",
+        "PRODCD": "B034",
+        "PRICE": 2389.25,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0119",
+        "SIGUNNM": "서울 양천구",
+        "PRODCD": "C004",
+        "PRICE": 1656.75,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0119",
+        "SIGUNNM": "서울 양천구",
+        "PRODCD": "D047",
+        "PRICE": 1833.52,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0119",
+        "SIGUNNM": "서울 양천구",
+        "PRODCD": "K015",
+        "PRICE": 1161.17,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0120",
+        "SIGUNNM": "서울 중랑구",
+        "PRODCD": "B027",
+        "PRICE": 1846.15,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0120",
+        "SIGUNNM": "서울 중랑구",
+        "PRODCD": "B034",
+        "PRICE": 2259.86,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0120",
+        "SIGUNNM": "서울 중랑구",
+        "PRODCD": "C004",
+        "PRICE": 1720.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0120",
+        "SIGUNNM": "서울 중랑구",
+        "PRODCD": "D047",
+        "PRICE": 1839.62,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0120",
+        "SIGUNNM": "서울 중랑구",
+        "PRODCD": "K015",
+        "PRICE": 1159.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0121",
+        "SIGUNNM": "서울 서초구",
+        "PRODCD": "B027",
+        "PRICE": 1895.83,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0121",
+        "SIGUNNM": "서울 서초구",
+        "PRODCD": "B034",
+        "PRICE": 2351.37,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0121",
+        "SIGUNNM": "서울 서초구",
+        "PRODCD": "C004",
+        "PRICE": 1699.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0121",
+        "SIGUNNM": "서울 서초구",
+        "PRODCD": "D047",
+        "PRICE": 1882.93,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0121",
+        "SIGUNNM": "서울 서초구",
+        "PRODCD": "K015",
+        "PRICE": 1167.67,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0122",
+        "SIGUNNM": "서울 송파구",
+        "PRODCD": "B027",
+        "PRICE": 1864.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0122",
+        "SIGUNNM": "서울 송파구",
+        "PRODCD": "B034",
+        "PRICE": 2294.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0122",
+        "SIGUNNM": "서울 송파구",
+        "PRODCD": "C004",
+        "PRICE": 1679.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0122",
+        "SIGUNNM": "서울 송파구",
+        "PRODCD": "D047",
+        "PRICE": 1851.69,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0122",
+        "SIGUNNM": "서울 송파구",
+        "PRODCD": "K015",
+        "PRICE": 1160.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0123",
+        "SIGUNNM": "서울 광진구",
+        "PRODCD": "B027",
+        "PRICE": 1844.2,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0123",
+        "SIGUNNM": "서울 광진구",
+        "PRODCD": "B034",
+        "PRICE": 2307.5,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0123",
+        "SIGUNNM": "서울 광진구",
+        "PRODCD": "C004",
+        "PRICE": 1590.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0123",
+        "SIGUNNM": "서울 광진구",
+        "PRODCD": "D047",
+        "PRICE": 1827.8,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0123",
+        "SIGUNNM": "서울 광진구",
+        "PRODCD": "K015",
+        "PRICE": 1159.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0124",
+        "SIGUNNM": "서울 강북구",
+        "PRODCD": "B027",
+        "PRICE": 1856.44,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0124",
+        "SIGUNNM": "서울 강북구",
+        "PRODCD": "B034",
+        "PRICE": 2350.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0124",
+        "SIGUNNM": "서울 강북구",
+        "PRODCD": "C004",
+        "PRICE": 1700.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0124",
+        "SIGUNNM": "서울 강북구",
+        "PRODCD": "D047",
+        "PRICE": 1839.56,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0124",
+        "SIGUNNM": "서울 강북구",
+        "PRODCD": "K015",
+        "PRICE": 1156.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0125",
+        "SIGUNNM": "서울 금천구",
+        "PRODCD": "B027",
+        "PRICE": 1847.7,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0125",
+        "SIGUNNM": "서울 금천구",
+        "PRODCD": "B034",
+        "PRICE": 2250.6,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0125",
+        "SIGUNNM": "서울 금천구",
+        "PRODCD": "C004",
+        "PRICE": 1585.4,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0125",
+        "SIGUNNM": "서울 금천구",
+        "PRODCD": "D047",
+        "PRICE": 1824.0,
+        "DIFF": 0.0
+      },
+      {
+        "SIGUNCD": "0125",
+        "SIGUNNM": "서울 금천구",
+        "PRODCD": "K015",
+        "PRICE": 1159.0,
+        "DIFF": 0.0
+      }
+    ]
+  }
+}

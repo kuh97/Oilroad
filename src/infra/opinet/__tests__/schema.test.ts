@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   OpinetRadiusResponseSchema,
   OpinetDetailResponseSchema,
+  AreaCodeResponseSchema,
+  AvgSigunPriceResponseSchema,
 } from "../schema";
 import radiusFixture from "../../../../tests/fixtures/opinet-radius.json";
 import detailFixture from "../../../../tests/fixtures/opinet-detail.json";
+import areaCodeFixture from "../../../../tests/fixtures/opinet-area-code.json";
+import avgSigunPriceFixture from "../../../../tests/fixtures/opinet-avg-sigun-price.json";
 
 describe("OpinetRadiusResponseSchema — 픽스처 파싱", () => {
   it("Phase 0 반경검색 픽스처가 스키마를 통과한다", () => {
@@ -64,5 +68,39 @@ describe("OpinetDetailResponseSchema — 픽스처 파싱", () => {
     const item = result.RESULT.OIL[0];
     // 타입 레벨 검증: POLL_DIV_CO가 존재해야 스키마 통과
     expect(typeof item.POLL_DIV_CO).toBe("string");
+  });
+});
+
+describe("AreaCodeResponseSchema — 픽스처 파싱", () => {
+  it("실측 지역코드 픽스처가 스키마를 통과한다", () => {
+    const result = AreaCodeResponseSchema.safeParse(areaCodeFixture);
+    expect(result.success).toBe(true);
+  });
+
+  it("전국 16개 시도코드가 모두 있다", () => {
+    const result = AreaCodeResponseSchema.parse(areaCodeFixture);
+    expect(result.RESULT.OIL.length).toBe(16);
+    for (const item of result.RESULT.OIL) {
+      expect(typeof item.AREA_CD).toBe("string");
+      expect(typeof item.AREA_NM).toBe("string");
+    }
+  });
+});
+
+describe("AvgSigunPriceResponseSchema — 픽스처 파싱", () => {
+  it("실측 시군구 평균가 픽스처가 스키마를 통과한다", () => {
+    const result = AvgSigunPriceResponseSchema.safeParse(avgSigunPriceFixture);
+    expect(result.success).toBe(true);
+  });
+
+  it("각 항목이 필수 필드를 모두 갖는다", () => {
+    const result = AvgSigunPriceResponseSchema.parse(avgSigunPriceFixture);
+    expect(result.RESULT.OIL.length).toBeGreaterThan(0);
+    for (const item of result.RESULT.OIL) {
+      expect(typeof item.SIGUNCD).toBe("string");
+      expect(typeof item.SIGUNNM).toBe("string");
+      expect(typeof item.PRODCD).toBe("string");
+      expect(typeof item.PRICE).toBe("number");
+    }
   });
 });

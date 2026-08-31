@@ -1,6 +1,8 @@
 import { http, HttpResponse } from "msw";
 import radiusFixture from "../fixtures/opinet-radius.json";
 import detailFixture from "../fixtures/opinet-detail.json";
+import areaCodeFixture from "../fixtures/opinet-area-code.json";
+import avgSigunPriceFixture from "../fixtures/opinet-avg-sigun-price.json";
 import directionsFixture from "../fixtures/kakao-directions.json";
 import directionsWaypointFixture from "../fixtures/kakao-directions-waypoint.json";
 import localFixture from "../fixtures/kakao-local.json";
@@ -16,6 +18,14 @@ export const handlers = [
 
   http.get(`${OPINET_BASE}/detailById.do`, () => {
     return HttpResponse.json(detailFixture);
+  }),
+
+  http.get(`${OPINET_BASE}/areaCode.do`, () => {
+    return HttpResponse.json(areaCodeFixture);
+  }),
+
+  http.get(`${OPINET_BASE}/avgSigunPrice.do`, () => {
+    return HttpResponse.json(avgSigunPriceFixture);
   }),
 
   // waypoints 파라미터 유무로 기본 경로/경유 경로 픽스처를 나눠 응답합니다.

@@ -1,0 +1,70 @@
+{
+  "RESULT": {
+    "OIL": [
+      {
+        "AREA_CD": "01",
+        "AREA_NM": "서울"
+      },
+      {
+        "AREA_CD": "02",
+        "AREA_NM": "경기"
+      },
+      {
+        "AREA_CD": "03",
+        "AREA_NM": "강원"
+      },
+      {
+        "AREA_CD": "04",
+        "AREA_NM": "충북"
+      },
+      {
+        "AREA_CD": "05",
+        "AREA_NM": "충남"
+      },
+      {
+        "AREA_CD": "06",
+        "AREA_NM": "전북"
+      },
+      {
+        "AREA_CD": "08",
+        "AREA_NM": "경북"
+      },
+      {
+        "AREA_CD": "09",
+        "AREA_NM": "경남"
+      },
+      {
+        "AREA_CD": "10",
+        "AREA_NM": "부산"
+      },
+      {
+        "AREA_CD": "11",
+        "AREA_NM": "제주"
+      },
+      {
+        "AREA_CD": "14",
+        "AREA_NM": "대구"
+      },
+      {
+        "AREA_CD": "15",
+        "AREA_NM": "인천"
+      },
+      {
+        "AREA_CD": "17",
+        "AREA_NM": "대전"
+      },
+      {
+        "AREA_CD": "18",
+        "AREA_NM": "울산"
+      },
+      {
+        "AREA_CD": "19",
+        "AREA_NM": "세종"
+      },
+      {
+        "AREA_CD": "20",
+        "AREA_NM": "전남광주"
+      }
+    ]
+  }
+}

@@ -111,7 +111,6 @@ oilroad/
 │           └── useDetour.ts
 ├── drizzle/                            # 생성된 마이그레이션 SQL — 커밋 대상
 ├── scripts/
-│   ├── import-standard-data.ts         # pnpm data:import-standard
 │   ├── sync-sigungu-avg.ts             # pnpm data:sync-sigungu (cron도 이걸 호출)
 │   └── verify/
 │       ├── _shared.ts                  # 콘솔 출력 · requireEnv 등 공통 유틸
@@ -125,9 +124,11 @@ oilroad/
 │       ├── t3-rate.mts                 # verify:t3-rate              Phase 5
 │       └── uturn.mts                   # verify:uturn          (④)  Phase 5
 └── tests/
-    ├── fixtures/                       # ★ 실 응답 (MSW용) — 오피넷은 Phase 0, 카카오는 Phase 4에서 저장
+    ├── fixtures/                       # ★ 실 응답 (MSW용) — 오피넷은 Phase 0/6, 카카오는 Phase 4에서 저장
     │   ├── opinet-radius.json
     │   ├── opinet-detail.json
+    │   ├── opinet-area-code.json           # areaCode.do — Phase 6
+    │   ├── opinet-avg-sigun-price.json     # avgSigunPrice.do — Phase 6
     │   ├── kakao-directions.json
     │   ├── kakao-directions-waypoint.json  # 경유지 1개 포함 응답
     │   └── kakao-local.json
@@ -689,22 +690,17 @@ CREATE INDEX idx_refuel_point_sigun  ON refuel_point (sigun_cd);
 CREATE INDEX idx_refuel_point_energy ON refuel_point (energy_type);
 ```
 
-**구축 방법**
-
-1. `scripts/import-standard-data.ts` — 전국주유소표준데이터(행안부) 파일을 읽어 적재. `source='STANDARD_DATA'`
-2. 반경검색에서 마스터에 없는 `UNI_ID`가 나오면 오피넷 상세 API로 1회 조회 후 `source='OPINET'`으로 upsert
-3. `detail_synced_at`이 30일 지난 레코드는 백그라운드로 갱신
-
 **마스터 구축 전략 `[확정 — §12 ②]`**
 
 `verify:standard-data` 실측 결과: 행안부 표준데이터에 **UNI_ID·시설 컬럼 모두 없음.** 좌표(위도·경도)는 있으나, 시설 정보가 없어 표준데이터를 써도 오피넷 상세 API N+1은 해결되지 않습니다.
 
 **확정된 방식 — 폴백 C: 표준데이터 포기, 오피넷 상세 API + Redis 7일 캐시**
 
-- 반경검색에서 처음 보는 `UNI_ID`가 나오면 → 오피넷 상세 API 1회 → Redis 7일 캐시(`stn-detail:{uniId}`)
-- 두 번째 조회부터는 캐시에서 직접 반환 — 베타 규모에서 자주 검색되는 경로의 주유소는 빠르게 캐시에 쌓임
-- `scripts/import-standard-data.ts`는 **작성하지 않습니다**
-- `refuel_point` 테이블은 오피넷 상세 API 응답으로만 채웁니다 (`source='OPINET'`)
+1. 반경검색에서 마스터에 없는 `UNI_ID`가 나오면 오피넷 상세 API로 1회 조회 후 `source='OPINET'`으로 upsert (Phase 6: `src/infra/db/repositories.ts`의 `upsertRefuelPointFromDetail`)
+2. 반경검색에서 처음 보는 `UNI_ID`가 나오면 → 오피넷 상세 API 1회 → Redis 7일 캐시(`stn-detail:{uniId}`) — 두 번째 조회부터는 캐시에서 직접 반환. 이 캐시 연결은 station-service 몫입니다 (Phase 7)
+3. `detail_synced_at`이 30일 지난 레코드를 백그라운드로 갱신하는 배치는 **아직 만들지 않았습니다** (§16.4 재검토 신호에 준해 필요해지면 추가)
+4. `scripts/import-standard-data.ts`는 **작성하지 않습니다** — 표준데이터는 임포트하지 않습니다
+5. `refuel_point` 테이블은 오피넷 상세 API 응답으로만 채웁니다 (`source='OPINET'`)
 
 ### 7.2 `sigungu_avg_price` — `P_ref` 폴백용
 
@@ -1033,14 +1029,17 @@ Client → domain/deeplink.build(app, origin, station, destination)
 | -------- | ------------------------------------------------------------------------ |
 | **목적** | **시설 필터 N+1 제거** + `P_ref` 폴백 확보                               |
 | **선행** | Phase 0 ② (조인 키 확인)                                                 |
-| **범위** | Drizzle 스키마 · 마이그레이션 · 표준데이터 임포트 · 시군구 평균가 동기화 |
+| **범위** | Drizzle 스키마 · 마이그레이션 · `refuel_point` upsert/조회 · 시군구 평균가 동기화(오피넷 `avgSigunPrice.do`/`areaCode.do` → `sigungu_avg_price`) — 표준데이터 임포트는 폴백 C 채택으로 **범위 밖** (§7.1) |
 
-**완료 기준**
+**완료 기준 — 완료 (2026-08-31)**
 
-- 임포트 후 `UNI_ID`로 오피넷 응답과 **조인 성공**
-- 시설 컬럼이 채워짐 → **시설 필터의 상세 조회 호출이 0으로 떨어짐**
+- 임포트 후 `UNI_ID`로 오피넷 응답과 **조인 성공** — `upsertRefuelPointFromDetail` → `findRefuelPointsByIds` 라운드트립을 실제 오피넷 상세 API + Neon(dev)으로 검증
+- 시설 컬럼이 채워짐 → **시설 필터의 상세 조회 호출이 0으로 떨어짐** — 컬럼·리포지토리까지 준비됨. 반경검색 결과와의 조인 자체는 station-service(Phase 7) 몫
 - 테이블·컬럼이 `refuel_point`/`energy_type` 등 일반 개념 유지 (§9 변경 원칙)
-- cron 인증 동작 (`CRON_SECRET`)
+- cron 인증 동작 (`CRON_SECRET`) — `POST /api/cron/sync-sigungu`, `Authorization` 불일치 시 401
+- `sigungu_avg_price`는 실제 오피넷 API(시도 16개 순회)로 동기화 검증 — 682행 upsert 확인
+
+`search_event`/`navi_click_event`(§7.3)는 Phase 6 범위가 아닙니다 — Phase 11에서 만듭니다.
 
 ---
 
@@ -1216,6 +1215,7 @@ Client → domain/deeplink.build(app, origin, station, destination)
 - [오피넷 오픈 API 이용 안내](https://www.opinet.co.kr/user/custapi/openApiIntro.do)
 - [오피넷 반경 내 주유소 API 명세](https://www.opinet.co.kr/user/custapi/openApiInfoDtl.do?apiId=3)
 - [오피넷 주유소 상세정보(ID) API 명세](https://www.opinet.co.kr/user/custapi/openApiInfoDtl.do?apiId=1)
+- [오피넷 오픈 API 목록](https://www.opinet.co.kr/user/custapi/openApiInfo.do) — 시군구별 평균가격(`avgSigunPrice.do`)·지역코드 조회(`areaCode.do`) 명세 포함 (Phase 6 §7.2)
 - [오피넷 가격조사 및 공개 기준](https://www.opinet.co.kr/user/dopds/dopDs_4.do)
 - [공공데이터포털 · 전국주유소표준데이터](https://www.data.go.kr/data/15129441/standard.do)
 - [카카오모빌리티 길찾기 API](https://developers.kakaomobility.com/product/naviapi.html)
