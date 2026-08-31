@@ -21,6 +21,16 @@ export function PlaceAutocompleteInput({ label, placeholder, value, onChange }: 
   const [isOpen, setIsOpen] = useState(false);
   const { places, error, retry } = usePlacesSearch(isOpen ? query : "");
 
+  // 현재 위치 버튼·최근 검색 클릭처럼 부모가 value를 바깥에서 바꾸는 걸 반영해야 한다.
+  // useEffect 대신 "렌더링 중 상태 조정" 패턴(React 공식 권장)을 쓴다 — 사용자가 직접
+  // 타이핑할 때는 onChange(null)만 호출되므로(아래) prevValue와 다시 같아지지 않아
+  // 타이핑 중인 텍스트를 덮어쓰지 않는다.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    if (value?.name) setQuery(value.name);
+  }
+
   return (
     <div className="relative">
       <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>

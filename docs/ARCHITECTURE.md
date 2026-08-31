@@ -1114,6 +1114,12 @@ Client → domain/deeplink.build(app, origin, station, destination)
 
 **구현 중 발견 — `Candidate.priceUpdatedAt`이 항상 비어 있었음.** "가격 기준시각" 표시(§6.1, 위 불변식)는 이 필드에 의존하는데, Phase 7 `recommendation-service.finalizeCandidates`가 이 필드를 채우지 않고 있었습니다(옵셔널이라 타입 오류로도 드러나지 않음). `domain/cache-ttl.approximateLastUpdateTime(now)`(Phase 2에 이미 존재 — 오피넷이 실제 기준시각을 안 줄 때의 근사치)를 채우도록 고쳤습니다.
 
+**구현 중 발견 — Upstash Redis 클라이언트의 자동 역직렬화가 캐시 전체를 깨뜨리고 있었음(심각).** 실제 `OPINET_CERT_KEY`·`KAKAO_REST_API_KEY`·`DATABASE_URL`을 채운 뒤 브라우저에서 실제 검색을 돌려보고서야 발견됨 — 그 전까지 모든 테스트는 `fakeRedis()` 목(mock)으로만 검증돼 이 버그를 잡을 수 없었습니다.
+
+`@upstash/redis`의 `Redis` 클라이언트는 기본값(`automaticDeserialization: true`)으로 `get()`이 JSON처럼 보이는 문자열을 자동으로 파싱해 객체로 돌려줍니다. 그런데 `route-service.ts`(`deserialize`)와 `station-service.ts`가 저장한 JSON 문자열을 **직접 `JSON.parse`** 하도록 짜여 있어(Phase 7), 이미 객체로 돌아온 값을 다시 파싱하려다 `SyntaxError: "[object Object]" is not valid JSON`로 검색 전체가 실패했습니다. `infra/cache/redis.ts`에서 `automaticDeserialization: false`로 꺼서 `get()`이 항상 원본 문자열을 반환하도록 고쳤습니다 — `route-service`·`station-service`·단위 테스트의 `fakeRedis()` 전부가 원래 전제하던 계약과 일치시킨 것입니다.
+
+**구현 중 발견 — `PlaceAutocompleteInput`이 부모가 바깥에서 값을 바꿔도 반영 안 함.** "현재 위치" 버튼과 최근 검색 클릭이 스토어의 `origin`/`destination`을 바꿔도 입력창에 표시되는 텍스트는 그대로였습니다 — 컴포넌트 내부 `query` state를 `useState(value?.name ?? "")`로 마운트 시 한 번만 초기화하고 이후 `value` prop 변화를 반영하지 않았기 때문입니다. React 공식 권장 패턴인 "렌더링 중 상태 조정"(이전 값과 비교해 렌더 중에 `setState`)으로 고쳤습니다 — `useEffect` 안에서 `setState`를 부르는 것보다 리렌더 한 번을 아낄 수 있고, 이 프로젝트의 `react-hooks/set-state-in-effect` 린트 규칙도 피합니다.
+
 **의도적으로 범위를 좁힌 것들 — 정직하게 미룸**
 
 - **F10(내 주변)은 이번 Phase에서 빠짐.** PRODUCT.md §5.6이 "여기에 시간을 많이 쓰지 말라"고 명시한 대로, `useNearbyStations` 훅과 `/nearby` 화면은 다음으로 미룹니다. `GET /api/stations/nearby`는 Phase 8에서 이미 만들어져 있습니다.
@@ -1121,7 +1127,7 @@ Client → domain/deeplink.build(app, origin, station, destination)
 - **A1(확장해도 0건) 시 "목적지·출발지 근처 검색 제안"은 구현 안 함.** `/nearby`가 없어 제안할 화면 자체가 없습니다 — F10을 만들 때 같이 연결해야 합니다.
 - **딥링크 미설치 폴백(폴백 타이머 → 스토어 이동)은 만들지 않음.** ARCHITECTURE.md 자체가 이를 Phase 10 범위로 분리해뒀습니다 — 이번엔 스킴 링크(`kakaomap://`, `nmap://`, `tmap://`)만 연결했습니다.
 - **네이버지도 `appname` 값은 `"oilroad"` placeholder.** 실제 등록된 앱 식별자가 필요하면 나중에 교체해야 합니다.
-- **실 데이터로 브라우저 검증을 못 함.** 로컬 `.env.local`에 `OPINET_CERT_KEY`·`DATABASE_URL` 등이 없어, 검색 결과가 실제로 채워진 화면(카드·배너·지도)은 라이브로 못 보고 RTL 렌더 테스트로 대체했습니다.
+- **지도만 실 브라우저에서 재확인 필요.** 실제 검색 결과 화면(헤더·배너·모드탭·카드·상세 추천 이유·전화걸기·내비 버튼)은 실 API 키로 브라우저에서 끝까지 확인했습니다. 카카오맵만 이 세션의 샌드박스 브라우저에서 "지도를 불러오지 못했습니다"로 떴는데, 원인을 추적한 결과 스크립트 태그로 주입한 요청만 실패하고(같은 키로 `https://dapi.kakao.com/...`에 직접 접속하면 SDK가 정상 응답함) 최상위 네비게이션은 성공해, 코드 결함이 아니라 이 브라우저 도구의 서드파티 스크립트 주입 제한으로 보입니다. 실제 브라우저에서 재확인이 필요합니다.
 
 ---
 
