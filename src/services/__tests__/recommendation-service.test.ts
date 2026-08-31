@@ -14,6 +14,7 @@ import { collectStations, isOpinetBudgetAvailable } from "../station-service";
 import { computeReferencePrice } from "../price-service";
 import { logSearch } from "../event-service";
 import { wgs84 } from "@/domain/types";
+import { MAX_PRECISE } from "@/domain/params";
 import type { BaseRoute, RefuelPoint, SearchInput, Fuel } from "@/domain/types";
 import type { RedisLike } from "../route-service";
 import type { Db } from "@/infra/db/client";
@@ -113,6 +114,65 @@ describe("search — 확장 미발동 (T1+T2 충분)", () => {
     for (const c of result.candidates) {
       expect(c.priceUpdatedAt).toBeInstanceOf(Date);
     }
+  });
+});
+
+describe("search — 경로 API 호출 예산 (ARCHITECTURE.md §5.3)", () => {
+  // "카카오 경로 API는 검색당 항상 7회 이하 (기본 1 + 정밀 최대 MAX_PRECISE)".
+  // 경유지 캐시 격자를 좁힌 뒤(근접 주유소가 더 이상 캐시를 공유하지 않음) 실제
+  // 호출이 늘어나므로, 상한이 여전히 지켜지는지 후보를 많이 깔아놓고 확인한다.
+  it("후보가 많아도 경로 API 호출은 1(기본) + MAX_PRECISE 이하다", async () => {
+    // T1·T2·T3가 고루 섞이도록 세 그룹으로 깔아둔다.
+    //
+    // NOTE: 현재 구현에서는 후보를 아무리 늘려도 정밀 계산이 3회를 넘지 않는다.
+    // selectPreciseTargets가 computeScores에 refuelAmountL:0·timeValuePerMin:0을 넘겨
+    // 점수에서 가격 항이 사라지는 탓에 세 모드가 항상 같은(=가장 가까운) 후보를 뽑기
+    // 때문이다. 이 테스트가 검증하는 것은 어디까지나 §5.3의 호출 상한이며, 위 선정
+    // 로직은 별도 확인이 필요하다.
+    const many = [
+      // 경로 위 · 비쌈 → minDistance가 선호
+      ...Array.from({ length: 4 }, (_, i) => ({
+        station: station({ id: `NEAR${i}`, location: wgs84(37.0, 127.02 + i * 0.03) }),
+        price: 1890 - i,
+      })),
+      // 멀리(≈5.5km) · 매우 쌈 → minCost가 선호
+      ...Array.from({ length: 4 }, (_, i) => ({
+        station: station({ id: `FAR${i}`, location: wgs84(37.05, 127.04 + i * 0.03) }),
+        price: 1600 - i,
+      })),
+      // 중간(≈2km) · 중간 가격 → balanced가 선호
+      ...Array.from({ length: 4 }, (_, i) => ({
+        station: station({ id: `MID${i}`, location: wgs84(37.018, 127.06 + i * 0.03) }),
+        price: 1750 - i,
+      })),
+    ];
+    collectStationsMock.mockResolvedValue({ stations: many, warnings: [] });
+
+    await search(baseInput(), undefined, FAKE_DEPS);
+
+    const total = getRouteMock.mock.calls.length;
+    const base = getRouteMock.mock.calls.filter(([o]) => !o.waypoint).length;
+    const precise = getRouteMock.mock.calls.filter(([o]) => o.waypoint).length;
+
+    expect(base).toBe(1);
+    expect(precise).toBeLessThanOrEqual(MAX_PRECISE);
+    expect(total).toBeLessThanOrEqual(1 + MAX_PRECISE);
+  });
+
+  it("정밀 계산 대상은 서로 다른 경유지를 쓴다 (같은 주유소를 중복 계산하지 않는다)", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      station: station({ id: `B${i}`, location: wgs84(37.0, 127.02 + i * 0.02) }),
+      price: 1700 + i,
+    }));
+    collectStationsMock.mockResolvedValue({ stations: many, warnings: [] });
+
+    await search(baseInput(), undefined, FAKE_DEPS);
+
+    const waypoints = getRouteMock.mock.calls
+      .map(([o]) => o.waypoint)
+      .filter((w): w is NonNullable<typeof w> => w != null)
+      .map((w) => `${w.lat},${w.lng}`);
+    expect(new Set(waypoints).size).toBe(waypoints.length);
   });
 });
 
