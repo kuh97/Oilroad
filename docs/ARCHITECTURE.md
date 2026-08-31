@@ -72,6 +72,7 @@ oilroad/
 │   │   ├── station/[id]/page.tsx       # 상세 (F8·F9)
 │   │   ├── nearby/page.tsx             # 내 주변 (F10)
 │   │   └── api/
+│   │       ├── _lib/                   # 서버 전용 — schema·validate·serialize·sse (Phase 8)
 │   │       ├── search/route.ts         # SSE
 │   │       ├── detour/route.ts
 │   │       ├── places/search/route.ts
@@ -615,13 +616,15 @@ Accept: application/json   → search(input)            // 콜백 없음 = 완�
 // Request
 { "origin": {...}, "destination": {...}, "stationId": "A0012345",
   "vehicle": { "efficiency": 8.5, "refuelAmount": 45, "timeValue": 200 },
-  "referencePrice": 1210 }
+  "priceStation": 1650, "referencePrice": 1210 }
 
 // Response
 { "distanceM": 12400, "durationS": 1080, "precise": true, "netSaving": 3252 }
 ```
 
-카카오 경로 API 1회. `ΔD`·`ΔT`는 0으로 클램프합니다.
+카카오 경로 API 1회(경유 경로). 기본 경로는 `/api/search`에서 이미 캐시됐으므로 재호출이 아니라 캐시 히트입니다(§8 1시간 TTL). `ΔD`·`ΔT`는 0으로 클램프합니다.
+
+**`priceStation` — Phase 8 구현 중 추가.** 이 엔드포인트는 오피넷을 다시 부르지 않으므로(카카오 호출만 예산에 잡혀 있음) 서버가 주유소의 현재 가격을 새로 알 방법이 없습니다. 클라이언트가 이미 화면에 들고 있는 `Candidate.price`를 그대로 넘겨받아 `netSaving`을 계산합니다.
 
 ### 6.4 나머지 엔드포인트
 
@@ -1074,16 +1077,16 @@ Client → domain/deeplink.build(app, origin, station, destination)
 | **선행** | Phase 7                                           |
 | **범위** | `/api/search` · `/api/detour` · 나머지 엔드포인트 |
 
-**완료 기준**
+**완료 기준 — 완료 (2026-08-31)**
 
 - **이벤트 순서 계약 테스트** — `base_route` 최초, `result` 최종, `error` 이후 무발신
-- `Accept: application/json` 요청이 **SSE의 `result`와 동일한 본문**을 반환
-- `maxDuration` 설정 (20초 권장 — 폭주 방지용 상한)
-- route handler에 비즈니스 로직 없음 (파싱 → 서비스 → 직렬화)
+- `Accept: application/json` 요청이 **SSE의 `result`와 동일한 본문**을 반환 — 같은 `SearchResult`를 양쪽 경로에 흘려 직접 비교하는 테스트로 확인
+- `maxDuration` 설정 (`/api/search` 20초, `/api/detour` 10초)
+- route handler에 비즈니스 로직 없음 (파싱 → 서비스 → 직렬화) — 변환 로직은 `src/app/api/_lib/{schema,validate,serialize,sse}.ts`에 분리
 
----
+**구현 중 발견 ① — `src/lib/api/`는 이미 예약된 이름이었음.** §2 폴더 구조에 `src/lib/api/`가 Phase 9의 클라이언트 fetch 훅(`useSearchStream.ts` 등) 자리로 정의돼 있어, 이번에 만든 서버 전용 스키마·직렬화·SSE 유틸은 `src/app/api/_lib/`(Next.js가 라우팅에서 제외하는 `_` 접두사 폴더)에 두었습니다. `src/lib/api/`는 계속 Phase 9 몫으로 비워둡니다.
 
-### Phase 9 — 프론트 핵심 흐름
+**구현 중 발견 ② — `POST /api/detour`에 `priceStation` 필드를 추가함.** §6.3 문서 예시에는 없었지만, 이 엔드포인트는 오피넷을 재조회하지 않아 서버가 주유소 가격을 새로 알 방법이 없습니다. 클라이언트가 이미 보고 있는 `Candidate.price`를 그대로 받아 `netSaving`을 계산하도록 요청 스키마에 반영했습니다(위 §6.3 예시 갱신).
 
 |          |                                                         |
 | -------- | ------------------------------------------------------- |

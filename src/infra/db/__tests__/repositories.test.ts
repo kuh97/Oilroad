@@ -4,6 +4,7 @@ import {
   fromRefuelPointRow,
   upsertRefuelPointFromDetail,
   findRefuelPointsByIds,
+  findRefuelPointRowById,
   toSigunguAvgPriceInserts,
   bulkUpsertSigunguAvgPrices,
   findSigunguAvgPrice,
@@ -227,6 +228,51 @@ describe("findRefuelPointsByIds — DB 접근", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("A0009916");
     expect(result[0].location.lat).toBe(37.5);
+  });
+});
+
+describe("findRefuelPointRowById — DB 접근", () => {
+  it("row가 없으면 undefined를 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findRefuelPointRowById("A9999999", { select } as unknown as Db);
+    expect(result).toBeUndefined();
+  });
+
+  it("lastPrice·priceTradedAt을 포함한 원본 row를 그대로 반환한다 (fromRefuelPointRow와 달리 가격을 유지)", async () => {
+    const row: RefuelPointRow = {
+      id: "A0009916",
+      name: "테스트",
+      brandCode: "SKE",
+      energyType: "OIL",
+      lat: 37.5,
+      lng: 127.0,
+      katecX: null,
+      katecY: null,
+      addressRoad: null,
+      addressJibun: null,
+      tel: null,
+      sigunCd: null,
+      hasCarWash: false,
+      hasMaintenance: false,
+      hasCvs: false,
+      isKpetro: false,
+      lastPrice: 1650,
+      lastPriceProd: "B027",
+      priceTradedAt: NOW,
+      source: "OPINET",
+      detailSyncedAt: null,
+      updatedAt: NOW,
+    };
+    const where = vi.fn().mockResolvedValue([row]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findRefuelPointRowById("A0009916", { select } as unknown as Db);
+    expect(result?.lastPrice).toBe(1650);
+    expect(result?.priceTradedAt).toEqual(NOW);
   });
 });
 

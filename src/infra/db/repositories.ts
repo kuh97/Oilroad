@@ -149,6 +149,23 @@ export async function findRefuelPointsByIds(
   return rows.map(fromRefuelPointRow);
 }
 
+/**
+ * 단일 주유소를 가격 스냅샷(`lastPrice`)까지 포함한 원본 row로 조회.
+ * `fromRefuelPointRow`는 가격을 domain `RefuelPoint`에 포함시키지 않으므로(가격은
+ * 검색 시점 값이라 station 엔티티가 아닌 Candidate가 들고 있음 — §7.1), 경로 없이
+ * 상세만 필요한 GET /api/stations/:id(§6.4)는 이 함수를 씁니다.
+ * `lastPrice`는 마지막으로 검색됐던 연료(`lastPriceProd`) 기준이라, 요청한 연료와
+ * 다를 수 있습니다 — PRODUCT.md §5.6이 이 기능에 시간을 많이 쓰지 말라고 명시한 만큼
+ * 현재는 이 한계를 그대로 노출합니다.
+ */
+export async function findRefuelPointRowById(
+  id: string,
+  db: Db = getDb(),
+): Promise<RefuelPointRow | undefined> {
+  const [row] = await db.select().from(refuelPoint).where(eq(refuelPoint.id, id));
+  return row;
+}
+
 // ─── sigungu_avg_price ──────────────────────────────────────────────────────
 
 export interface SigunguAvgPriceInput {
