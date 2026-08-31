@@ -14,8 +14,10 @@ export function usePlacesSearch(query: string) {
   const [places, setPlaces] = useState<WirePlace[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const isTooShort = query.trim().length < PLACE_QUERY_MIN_LEN;
+  const retry = () => setRetryNonce((n) => n + 1);
 
   useEffect(() => {
     if (isTooShort) return;
@@ -43,7 +45,7 @@ export function usePlacesSearch(query: string) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, isTooShort]);
+  }, [query, isTooShort, retryNonce]);
 
-  return { places: isTooShort ? [] : places, isLoading, error: isTooShort ? null : error };
+  return { places: isTooShort ? [] : places, isLoading, error: isTooShort ? null : error, retry };
 }
