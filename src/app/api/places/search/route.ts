@@ -21,10 +21,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ places: [] });
   }
 
-  const places = await fetchPlaces({ query, size: MAX_RESULTS });
-  const wire: WirePlace[] = places
-    .slice(0, MAX_RESULTS)
-    .map((p) => ({ name: p.name, address: p.address, lat: p.location.lat, lng: p.location.lng }));
+  try {
+    const places = await fetchPlaces({ query, size: MAX_RESULTS });
+    const wire: WirePlace[] = places
+      .slice(0, MAX_RESULTS)
+      .map((p) => ({ name: p.name, address: p.address, lat: p.location.lat, lng: p.location.lng }));
 
-  return NextResponse.json({ places: wire });
+    return NextResponse.json({ places: wire });
+  } catch {
+    // PRODUCT.md §10.2 — 자동완성 실패는 안내 + 재시도. 검색 자체는 계속 가능해야 하므로
+    // 예외를 그대로 흘려보내지 않고 구조화된 에러로 응답한다.
+    return NextResponse.json(
+      { code: "PLACE_SEARCH_FAILED", message: "장소를 찾을 수 없습니다." },
+      { status: 502 },
+    );
+  }
 }

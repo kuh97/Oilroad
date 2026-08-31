@@ -619,12 +619,15 @@ Accept: application/json   → search(input)            // 콜백 없음 = 완�
   "priceStation": 1650, "referencePrice": 1210 }
 
 // Response
-{ "distanceM": 12400, "durationS": 1080, "precise": true, "netSaving": 3252 }
+{ "distanceM": 12400, "durationS": 1080, "precise": true, "netSaving": 3252,
+  "polyline": [{ "lat": 37.42, "lng": 127.12 }, ...] }
 ```
 
 카카오 경로 API 1회(경유 경로). 기본 경로는 `/api/search`에서 이미 캐시됐으므로 재호출이 아니라 캐시 히트입니다(§8 1시간 TTL). `ΔD`·`ΔT`는 0으로 클램프합니다.
 
 **`priceStation` — Phase 8 구현 중 추가.** 이 엔드포인트는 오피넷을 다시 부르지 않으므로(카카오 호출만 예산에 잡혀 있음) 서버가 주유소의 현재 가격을 새로 알 방법이 없습니다. 클라이언트가 이미 화면에 들고 있는 `Candidate.price`를 그대로 넘겨받아 `netSaving`을 계산합니다.
+
+**`polyline` — Phase 9 구현 중 추가.** 상세 화면(F8)이 "기본 경로(회색) + 경유 경로(강조)"를 지도에 그리려면 경유 경로의 폴리라인이 필요합니다. `recommendation-service` STEP 10은 정밀 계산 시 이미 이 폴리라인을 받아오면서도 거리·시간 델타만 뽑고 버렸는데, `/api/detour`는 그 값을 그대로 응답에 포함시킵니다. 기본 경로 폴리라인은 `/api/search` 결과(`SearchResult.baseRoute.polyline`)에 이미 있으므로 여기서 중복 전송하지 않습니다. 이미 정밀 계산된 후보라도 지도를 그리려면 폴리라인이 필요해 상세 화면은 진입 시 항상 이 엔드포인트를 호출합니다 — `getRoute`의 1시간 캐시 덕분에 대부분 카카오 재호출 없이 캐시 히트로 처리됩니다.
 
 ### 6.4 나머지 엔드포인트
 
@@ -1088,13 +1091,17 @@ Client → domain/deeplink.build(app, origin, station, destination)
 
 **구현 중 발견 ② — `POST /api/detour`에 `priceStation` 필드를 추가함.** §6.3 문서 예시에는 없었지만, 이 엔드포인트는 오피넷을 재조회하지 않아 서버가 주유소 가격을 새로 알 방법이 없습니다. 클라이언트가 이미 보고 있는 `Candidate.price`를 그대로 받아 `netSaving`을 계산하도록 요청 스키마에 반영했습니다(위 §6.3 예시 갱신).
 
+---
+
+### Phase 9 — 프론트 핵심 흐름
+
 |          |                                                         |
 | -------- | ------------------------------------------------------- |
 | **목적** | 홈 → 결과 → 상세                                        |
 | **선행** | Phase 8                                                 |
 | **범위** | Zustand 스토어 · `lib/api` 훅 · 화면 3개 · 카카오맵 SDK |
 
-**완료 기준 — UI 불변식 8개 체크리스트** ([`../AGENTS.md`](../AGENTS.md) §6)
+**완료 기준 — UI 불변식 8개 체크리스트 — 완료 (2026-08-31)** ([`../AGENTS.md`](../AGENTS.md) §6)
 
 확장 고지 배너 / 가격 기준시각 / `오래된 정보` 배지 / 계산 전제 표시 / 면책 문구 / T3 전화 확인 / 티맵 안내 / 후보 0건 대안
 
@@ -1104,6 +1111,25 @@ Client → domain/deeplink.build(app, origin, station, destination)
 - 연비·주유량 수정 시 즉시 재계산, `persist` 저장
 - **추정치와 실측치가 시각적으로 구분됨** (`약 N km ▸`)
 - 스토어가 빈 상태로 `/station/:id` 직접 진입 시 "검색 컨텍스트 없음" 화면
+
+**구현 중 발견 — `Candidate.priceUpdatedAt`이 항상 비어 있었음.** "가격 기준시각" 표시(§6.1, 위 불변식)는 이 필드에 의존하는데, Phase 7 `recommendation-service.finalizeCandidates`가 이 필드를 채우지 않고 있었습니다(옵셔널이라 타입 오류로도 드러나지 않음). `domain/cache-ttl.approximateLastUpdateTime(now)`(Phase 2에 이미 존재 — 오피넷이 실제 기준시각을 안 줄 때의 근사치)를 채우도록 고쳤습니다.
+
+**구현 중 발견 — Upstash Redis 클라이언트의 자동 역직렬화가 캐시 전체를 깨뜨리고 있었음(심각).** 실제 `OPINET_CERT_KEY`·`KAKAO_REST_API_KEY`·`DATABASE_URL`을 채운 뒤 브라우저에서 실제 검색을 돌려보고서야 발견됨 — 그 전까지 모든 테스트는 `fakeRedis()` 목(mock)으로만 검증돼 이 버그를 잡을 수 없었습니다.
+
+`@upstash/redis`의 `Redis` 클라이언트는 기본값(`automaticDeserialization: true`)으로 `get()`이 JSON처럼 보이는 문자열을 자동으로 파싱해 객체로 돌려줍니다. 그런데 `route-service.ts`(`deserialize`)와 `station-service.ts`가 저장한 JSON 문자열을 **직접 `JSON.parse`** 하도록 짜여 있어(Phase 7), 이미 객체로 돌아온 값을 다시 파싱하려다 `SyntaxError: "[object Object]" is not valid JSON`로 검색 전체가 실패했습니다. `infra/cache/redis.ts`에서 `automaticDeserialization: false`로 꺼서 `get()`이 항상 원본 문자열을 반환하도록 고쳤습니다 — `route-service`·`station-service`·단위 테스트의 `fakeRedis()` 전부가 원래 전제하던 계약과 일치시킨 것입니다.
+
+**구현 중 발견 — `PlaceAutocompleteInput`이 부모가 바깥에서 값을 바꿔도 반영 안 함.** "현재 위치" 버튼과 최근 검색 클릭이 스토어의 `origin`/`destination`을 바꿔도 입력창에 표시되는 텍스트는 그대로였습니다 — 컴포넌트 내부 `query` state를 `useState(value?.name ?? "")`로 마운트 시 한 번만 초기화하고 이후 `value` prop 변화를 반영하지 않았기 때문입니다. React 공식 권장 패턴인 "렌더링 중 상태 조정"(이전 값과 비교해 렌더 중에 `setState`)으로 고쳤습니다 — `useEffect` 안에서 `setState`를 부르는 것보다 리렌더 한 번을 아낄 수 있고, 이 프로젝트의 `react-hooks/set-state-in-effect` 린트 규칙도 피합니다.
+
+**구현 중 발견 — 짧은 경로에서 `DETOUR_CAP_RATIO`가 우회 후보를 전부 걸러냄(알고리즘 설계 갭).** 사용자가 실제 짧은 경로(남한산성입구역 → 을지대학교, 기본 경로 2km)로 검색해보고 발견함. `domain/pricing.exceedsDetourCap`은 우회가 `D_base × 0.5`를 넘으면 후보를 제외하는데(§7.2 STEP 11 ②, PRODUCT.md §10.1 A6), 이 규칙은 장거리 여행(92km 예시 — cap이 46km)을 전제로 설계되어 있었습니다. 기본 경로가 2km면 cap이 1km가 되어, 실제로 우회할 가치가 있는 T3 후보(예: 몇 km 밖의 LPG 충전소)까지 전부 제외됐습니다. `baseDistanceM < MIN_ROUTE_DISTANCE`(20km, 이미 `SHORT_ROUTE` 경고 기준으로 쓰던 값)면 이 cap을 적용하지 않도록 고쳤습니다 — `T3_MAX`(우회 탐색 상한 15km)와 `NetSaving > 0` 게이트가 이미 "어느 정도 범위"를 제한하므로 cap 없이도 무한정 찾아주지는 않습니다. `PRODUCT.md` §9.1·§10.1·§7.2 STEP11을 함께 갱신했습니다.
+
+**의도적으로 범위를 좁힌 것들 — 정직하게 미룸**
+
+- **F10(내 주변)은 이번 Phase에서 빠짐.** PRODUCT.md §5.6이 "여기에 시간을 많이 쓰지 말라"고 명시한 대로, `useNearbyStations` 훅과 `/nearby` 화면은 다음으로 미룹니다. `GET /api/stations/nearby`는 Phase 8에서 이미 만들어져 있습니다.
+- **A2(필터 때문에 0건) 진단을 단순화함.** PRODUCT.md §5.2는 "어떤 필터가 원인인지 특정"하라고 하지만, 이는 필터를 하나씩 빼며 재검색해야 해 오피넷 예산을 추가로 씁니다. 지금은 활성 필터가 있으면 "필터 초기화하고 다시 찾기" 하나만 제시합니다 — 원인 필터를 짚어주지는 않습니다.
+- **A1(확장해도 0건) 시 "목적지·출발지 근처 검색 제안"은 구현 안 함.** `/nearby`가 없어 제안할 화면 자체가 없습니다 — F10을 만들 때 같이 연결해야 합니다.
+- **딥링크 미설치 폴백(폴백 타이머 → 스토어 이동)은 만들지 않음.** ARCHITECTURE.md 자체가 이를 Phase 10 범위로 분리해뒀습니다 — 이번엔 스킴 링크(`kakaomap://`, `nmap://`, `tmap://`)만 연결했습니다.
+- **네이버지도 `appname` 값은 `"oilroad"` placeholder.** 실제 등록된 앱 식별자가 필요하면 나중에 교체해야 합니다.
+- **지도만 실 브라우저에서 재확인 필요.** 실제 검색 결과 화면(헤더·배너·모드탭·카드·상세 추천 이유·전화걸기·내비 버튼)은 실 API 키로 브라우저에서 끝까지 확인했습니다. 카카오맵만 이 세션의 샌드박스 브라우저에서 "지도를 불러오지 못했습니다"로 떴는데, 원인을 추적한 결과 스크립트 태그로 주입한 요청만 실패하고(같은 키로 `https://dapi.kakao.com/...`에 직접 접속하면 SDK가 정상 응답함) 최상위 네비게이션은 성공해, 코드 결함이 아니라 이 브라우저 도구의 서드파티 스크립트 주입 제한으로 보입니다. 실제 브라우저에서 재확인이 필요합니다.
 
 ---
 

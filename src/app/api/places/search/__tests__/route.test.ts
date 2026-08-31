@@ -40,4 +40,13 @@ describe("GET /api/places/search", () => {
     expect(body.places).toHaveLength(5);
     expect(body.places[0]).toEqual({ name: "장소0", address: "주소0", lat: 37, lng: 127 });
   });
+
+  it("fetchPlaces가 실패해도(환경변수 누락 등) 500 HTML이 아니라 구조화된 JSON 에러를 반환한다", async () => {
+    fetchPlacesMock.mockRejectedValue(new Error("환경변수 KAKAO_REST_API_KEY가 설정되지 않았습니다."));
+
+    const res = await GET(request("q=성남시청"));
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.code).toBe("PLACE_SEARCH_FAILED");
+  });
 });

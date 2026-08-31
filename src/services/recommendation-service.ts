@@ -31,6 +31,7 @@ import {
   scoreByMode,
 } from "@/domain/pricing";
 import { buildReason } from "@/domain/reason";
+import { approximateLastUpdateTime } from "@/domain/cache-ttl";
 import {
   MIN_CANDIDATES,
   T2_MAX,
@@ -133,7 +134,9 @@ function finalizeCandidates(
   vehicle: Vehicle,
   mode: Mode,
   hasFacilityFilter: boolean,
+  now: Date,
 ): Candidate[] {
+  const priceUpdatedAt = approximateLastUpdateTime(now);
   const withScores = internal.map((ic) => {
     const tc = totalCost({
       priceStationWon: ic.price,
@@ -195,6 +198,7 @@ function finalizeCandidates(
       totalCost: w.totalCostWon,
       scores: w.scores,
       reason,
+      priceUpdatedAt,
     };
   });
 }
@@ -405,6 +409,7 @@ export async function search(
     input.vehicle,
     input.mode,
     hasFacilityFilter,
+    now,
   );
   onProgress?.({
     type: "partial",
@@ -459,6 +464,7 @@ export async function search(
     input.vehicle,
     input.mode,
     hasFacilityFilter,
+    now,
   );
   finalCandidates = finalCandidates.slice(0, MAX_RESULTS);
 
