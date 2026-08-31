@@ -203,16 +203,33 @@ function finalizeCandidates(
   });
 }
 
-function selectPreciseTargets(internal: InternalCandidate[], mode: Mode): InternalCandidate[] {
+/**
+ * STEP 10 정밀 계산 대상 선정 — PRODUCT.md §7.2 STEP 10.
+ *
+ * 점수는 STEP 9(상위 finalizeCandidates)와 **완전히 같은 입력**으로 계산해야 합니다.
+ * STEP 10이 말하는 "추정 순위"는 STEP 9가 만든 순위이고, 거기서 추정치인 것은
+ * ΔD̂·ΔT̂뿐입니다 — 차량 파라미터가 아닙니다(§8 점수식).
+ *
+ * refuelAmountL을 0으로 두면 지배항인 주유비 Q×P_s(45L×1,700원 ≈ 76,500원)가
+ * 점수에서 통째로 사라져, 남은 우회 연료비(≈ 1,700원)만으로 세 모드가 전부
+ * "우회거리 순"으로 무너집니다. 그러면 모드별 top3 합집합이 항상 같은 3개가 되고,
+ * minCost에서는 선정 순위와 최종 표시 순위가 정반대로 뒤집어 사용자가 1위로 보는
+ * 후보가 오히려 추정치(§6.4 — 실제와 최대 12배 어긋날 수 있음)로 남습니다.
+ */
+function selectPreciseTargets(
+  internal: InternalCandidate[],
+  mode: Mode,
+  vehicle: Vehicle,
+): InternalCandidate[] {
   const withScores = internal.map((ic) => ({
     ic,
     scores: computeScores({
       priceStationWon: ic.price,
-      refuelAmountL: 0, // 선정에는 minDistance/minCost/balanced 상대 순위만 필요 — 절대값은 finalize에서 다시 계산
+      refuelAmountL: vehicle.refuelAmountL,
       detourDistanceM: ic.detourDistanceM,
       detourDurationS: ic.detourDurationS,
-      efficiencyKmPerL: 1,
-      timeValuePerMin: 0,
+      efficiencyKmPerL: vehicle.efficiencyKmPerL,
+      timeValuePerMin: vehicle.timeValuePerMin,
     }),
   }));
 
@@ -423,7 +440,7 @@ export async function search(
 
   // STEP10 — 정밀 계산
   onProgress?.({ type: "progress", step: "PRECISE" });
-  const preciseTargets = selectPreciseTargets(internal, input.mode);
+  const preciseTargets = selectPreciseTargets(internal, input.mode, input.vehicle);
   const preciseIds = new Set(preciseTargets.map((ic) => ic.station.id));
 
   const preciseResults = await Promise.allSettled(
