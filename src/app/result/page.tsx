@@ -90,7 +90,7 @@ export default function ResultPage() {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
         <p className="text-sm text-muted-foreground">검색 컨텍스트가 없습니다. 홈에서 먼저 검색해주세요.</p>
-        <Button render={<Link href="/" />}>홈으로</Button>
+        <Button render={<Link href="/" />} nativeButton={false}>홈으로</Button>
       </main>
     );
   }
@@ -100,7 +100,7 @@ export default function ResultPage() {
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
         <p className="text-sm text-muted-foreground">{error.message}</p>
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/" />}>
+          <Button variant="outline" render={<Link href="/" />} nativeButton={false}>
             홈으로
           </Button>
           <Button onClick={() => { searchKeyRef.current = null; runSearch({ origin, destination }); }}>다시 시도</Button>
@@ -152,7 +152,7 @@ export default function ResultPage() {
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground">이 경로에서는 조건에 맞는 주유소를 찾지 못했습니다.</p>
-                  <Button variant="outline" render={<Link href="/" />}>
+                  <Button variant="outline" render={<Link href="/" />} nativeButton={false}>
                     다른 경로로 다시 찾기
                   </Button>
                 </>

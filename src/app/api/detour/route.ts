@@ -11,6 +11,7 @@ import { netSaving } from "@/domain/pricing";
 import { wgs84 } from "@/domain/types";
 import { DetourRequestSchema } from "@/app/api/_lib/schema";
 import { parseJsonBody } from "@/app/api/_lib/validate";
+import { serializeBaseRoute } from "@/app/api/_lib/serialize";
 
 export const maxDuration = 10;
 
@@ -47,7 +48,16 @@ export async function POST(request: Request) {
       efficiencyKmPerL: body.vehicle.efficiency,
     });
 
-    return NextResponse.json({ distanceM, durationS, precise: true, netSaving: saving });
+    // 지도에 "경유 경로(강조)"를 그리려면 폴리라인이 필요하다 — 이미 계산해둔
+    // viaRoute에서 그대로 뽑아 쓴다(§5.4). 기본 경로 폴리라인은 이미 검색 결과에
+    // 있으므로 여기서 중복으로 보내지 않는다.
+    return NextResponse.json({
+      distanceM,
+      durationS,
+      precise: true,
+      netSaving: saving,
+      polyline: serializeBaseRoute(viaRoute).polyline,
+    });
   } catch {
     return NextResponse.json(
       { code: "ROUTE_FETCH_FAILED", message: "경유 경로를 계산하지 못했습니다." },

@@ -63,7 +63,7 @@ describe("POST /api/detour — 정상 흐름", () => {
     findRefuelPointsByIdsMock.mockResolvedValue([station()]);
     getRouteMock
       .mockResolvedValueOnce({ distanceM: 92000, durationS: 5640, polyline: [] }) // base
-      .mockResolvedValueOnce({ distanceM: 104400, durationS: 6720, polyline: [] }); // via
+      .mockResolvedValueOnce({ distanceM: 104400, durationS: 6720, polyline: [wgs84(37.5, 127.3)] }); // via
 
     const res = await POST(request(validBody()));
     expect(res.status).toBe(200);
@@ -73,6 +73,8 @@ describe("POST /api/detour — 정상 흐름", () => {
     expect(body.precise).toBe(true);
     // netSaving = (1210-1650)*45 - (12400/1000/8.5)*1650 ≈ -19800 - 2408 = -22208
     expect(body.netSaving).toBeLessThan(0);
+    // 지도에 경유 경로를 그리려면 폴리라인이 필요하다 — via route에서 그대로 뽑아 응답한다
+    expect(body.polyline).toEqual([{ lat: 37.5, lng: 127.3 }]);
   });
 
   it("경유 경로 조회가 실패하면 502를 반환한다", async () => {

@@ -619,12 +619,15 @@ Accept: application/json   → search(input)            // 콜백 없음 = 완�
   "priceStation": 1650, "referencePrice": 1210 }
 
 // Response
-{ "distanceM": 12400, "durationS": 1080, "precise": true, "netSaving": 3252 }
+{ "distanceM": 12400, "durationS": 1080, "precise": true, "netSaving": 3252,
+  "polyline": [{ "lat": 37.42, "lng": 127.12 }, ...] }
 ```
 
 카카오 경로 API 1회(경유 경로). 기본 경로는 `/api/search`에서 이미 캐시됐으므로 재호출이 아니라 캐시 히트입니다(§8 1시간 TTL). `ΔD`·`ΔT`는 0으로 클램프합니다.
 
 **`priceStation` — Phase 8 구현 중 추가.** 이 엔드포인트는 오피넷을 다시 부르지 않으므로(카카오 호출만 예산에 잡혀 있음) 서버가 주유소의 현재 가격을 새로 알 방법이 없습니다. 클라이언트가 이미 화면에 들고 있는 `Candidate.price`를 그대로 넘겨받아 `netSaving`을 계산합니다.
+
+**`polyline` — Phase 9 구현 중 추가.** 상세 화면(F8)이 "기본 경로(회색) + 경유 경로(강조)"를 지도에 그리려면 경유 경로의 폴리라인이 필요합니다. `recommendation-service` STEP 10은 정밀 계산 시 이미 이 폴리라인을 받아오면서도 거리·시간 델타만 뽑고 버렸는데, `/api/detour`는 그 값을 그대로 응답에 포함시킵니다. 기본 경로 폴리라인은 `/api/search` 결과(`SearchResult.baseRoute.polyline`)에 이미 있으므로 여기서 중복 전송하지 않습니다. 이미 정밀 계산된 후보라도 지도를 그리려면 폴리라인이 필요해 상세 화면은 진입 시 항상 이 엔드포인트를 호출합니다 — `getRoute`의 1시간 캐시 덕분에 대부분 카카오 재호출 없이 캐시 히트로 처리됩니다.
 
 ### 6.4 나머지 엔드포인트
 

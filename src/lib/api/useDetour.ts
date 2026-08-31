@@ -14,6 +14,8 @@ export interface DetourResult {
   durationS: number;
   precise: boolean;
   netSaving: number;
+  /** 경유 경로 폴리라인 — 지도에 "경유 경로(강조)"를 그리는 용도 (§5.4) */
+  polyline: WirePoint[];
 }
 
 export interface FetchDetourInput {

@@ -18,12 +18,14 @@ afterEach(() => {
 
 describe("useDetour", () => {
   it("성공하면 DetourResult를 반환한다", async () => {
+    const polyline = [{ lat: 37.5, lng: 127.3 }];
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ distanceM: 12400, durationS: 1080, precise: true, netSaving: 3252 }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({ distanceM: 12400, durationS: 1080, precise: true, netSaving: 3252, polyline }),
+          { status: 200 },
+        ),
       ),
     );
 
@@ -33,7 +35,7 @@ describe("useDetour", () => {
       detour = await result.current.fetchDetour(INPUT);
     });
 
-    expect(detour).toEqual({ distanceM: 12400, durationS: 1080, precise: true, netSaving: 3252 });
+    expect(detour).toEqual({ distanceM: 12400, durationS: 1080, precise: true, netSaving: 3252, polyline });
     expect(result.current.error).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
