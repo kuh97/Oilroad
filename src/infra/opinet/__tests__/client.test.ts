@@ -4,12 +4,16 @@ import { server } from "../../../../tests/msw/server";
 import {
   fetchRadius,
   fetchDetail,
+  fetchAreaCodes,
+  fetchAvgSigunPrice,
   createSemaphore,
   setSemaphore,
 } from "../client";
 import { katec } from "@/domain/types";
 import radiusFixture from "../../../../tests/fixtures/opinet-radius.json";
 import detailFixture from "../../../../tests/fixtures/opinet-detail.json";
+import areaCodeFixture from "../../../../tests/fixtures/opinet-area-code.json";
+import avgSigunPriceFixture from "../../../../tests/fixtures/opinet-avg-sigun-price.json";
 
 // MSW 핸들러가 tests/setup.ts에서 이미 설정됨
 // env.OPINET_CERT_KEY가 필요하므로 설정
@@ -73,6 +77,40 @@ describe("fetchDetail", () => {
     );
     const item = await fetchDetail({ uniId: "UNKNOWN" });
     expect(item).toBeNull();
+  });
+});
+
+describe("fetchAreaCodes", () => {
+  it("MSW 픽스처 응답을 파싱해 시도코드 배열을 반환한다", async () => {
+    const items = await fetchAreaCodes();
+    expect(items.length).toBe(areaCodeFixture.RESULT.OIL.length);
+    expect(items[0].AREA_CD).toBe(areaCodeFixture.RESULT.OIL[0].AREA_CD);
+  });
+
+  it("잘못된 응답 → 에러 throw", async () => {
+    server.use(
+      http.get("https://www.opinet.co.kr/api/areaCode.do", () => {
+        return HttpResponse.json({ WRONG_KEY: [] });
+      }),
+    );
+    await expect(fetchAreaCodes()).rejects.toThrow();
+  });
+});
+
+describe("fetchAvgSigunPrice", () => {
+  it("MSW 픽스처 응답을 파싱해 시군구 평균가 배열을 반환한다", async () => {
+    const items = await fetchAvgSigunPrice({ sido: "01" });
+    expect(items.length).toBe(avgSigunPriceFixture.RESULT.OIL.length);
+    expect(items[0].SIGUNCD).toBe(avgSigunPriceFixture.RESULT.OIL[0].SIGUNCD);
+  });
+
+  it("잘못된 응답 → 에러 throw", async () => {
+    server.use(
+      http.get("https://www.opinet.co.kr/api/avgSigunPrice.do", () => {
+        return HttpResponse.json({ WRONG_KEY: [] });
+      }),
+    );
+    await expect(fetchAvgSigunPrice({ sido: "01" })).rejects.toThrow();
   });
 });
 

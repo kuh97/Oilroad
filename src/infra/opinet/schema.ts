@@ -63,3 +63,36 @@ export const OpinetDetailResponseSchema = z.object({
 export type OpinetRadiusItem = z.infer<typeof OpinetRadiusItemSchema>;
 export type OpinetDetailItem = z.infer<typeof OpinetDetailItemSchema>;
 export type OpinetDetailOilPrice = z.infer<typeof OpinetDetailOilPriceSchema>;
+
+// ─── 지역코드 조회 (§7.2 시군구 평균가 동기화) ─────────────────────────────────
+
+export const AreaCodeItemSchema = z.object({
+  AREA_CD: z.string(),
+  AREA_NM: z.string(),
+});
+
+export const AreaCodeResponseSchema = z.object({
+  RESULT: z.object({
+    OIL: z.array(AreaCodeItemSchema),
+  }),
+});
+
+export type AreaCodeItem = z.infer<typeof AreaCodeItemSchema>;
+
+// ─── 시군구별 평균가격 (§7.2 P_ref 폴백) ───────────────────────────────────────
+
+export const AvgSigunPriceItemSchema = z.object({
+  SIGUNCD: z.string(),
+  SIGUNNM: z.string(),
+  PRODCD: z.string(),
+  PRICE: z.number(),
+  DIFF: z.number().optional(),
+});
+
+export const AvgSigunPriceResponseSchema = z.object({
+  RESULT: z.object({
+    OIL: z.array(AvgSigunPriceItemSchema),
+  }),
+});
+
+export type AvgSigunPriceItem = z.infer<typeof AvgSigunPriceItemSchema>;

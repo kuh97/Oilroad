@@ -25,4 +25,6 @@ export const env = {
   get KAKAO_REST_API_KEY() { return required("KAKAO_REST_API_KEY"); },
   get KAKAO_MOBILITY_BASE_URL() { return optional("KAKAO_MOBILITY_BASE_URL", "https://apis-navi.kakaomobility.com"); },
   get KAKAO_LOCAL_BASE_URL() { return optional("KAKAO_LOCAL_BASE_URL", "https://dapi.kakao.com"); },
+  get DATABASE_URL() { return required("DATABASE_URL"); },
+  get CRON_SECRET() { return required("CRON_SECRET"); },
 };

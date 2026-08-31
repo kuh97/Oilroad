@@ -115,9 +115,10 @@ cp .env.example .env.local     # 아래 표를 참고해 값을 채웁니다
 
 ```bash
 pnpm db:migrate               # drizzle-kit 마이그레이션 적용
-pnpm data:import-standard     # 전국주유소표준데이터로 마스터 구축 (최초 1회, 수 분 소요)
-pnpm data:sync-sigungu        # 시군구 평균가 동기화
+pnpm data:sync-sigungu        # 시군구 평균가 동기화 (최초 1회 + 이후 일 1회 cron)
 ```
+
+> `refuel_point`(주유소 마스터)는 별도 임포트 스크립트가 없습니다 — 표준데이터에 `UNI_ID`·시설 컬럼이 없어(`verify:standard-data` 실측, 폴백 C) 반경검색에서 처음 보는 주유소를 오피넷 상세 API로 조회할 때마다 채워집니다 ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §7.1).
 
 ### 개발 서버
 

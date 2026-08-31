@@ -10,8 +10,12 @@ import { env } from "@/infra/env";
 import {
   OpinetRadiusResponseSchema,
   OpinetDetailResponseSchema,
+  AreaCodeResponseSchema,
+  AvgSigunPriceResponseSchema,
   type OpinetRadiusItem,
   type OpinetDetailItem,
+  type AreaCodeItem,
+  type AvgSigunPriceItem,
 } from "./schema";
 import type { KatecPoint } from "@/domain/types";
 import { FUEL_TO_PRODCD } from "./mapper";
@@ -161,5 +165,58 @@ export async function fetchDetail(opts: FetchDetailOptions): Promise<OpinetDetai
     const parsed = OpinetDetailResponseSchema.safeParse(json);
     if (!parsed.success) throw new Error(`오피넷 상세 응답 파싱 실패: ${parsed.error.message}`);
     return parsed.data.RESULT.OIL[0] ?? null;
+  });
+}
+
+export interface FetchAreaCodesOptions {
+  certKey?: string;
+  retries?: number;
+}
+
+/**
+ * 시도코드 목록 조회 (§7.2 시군구 평균가 동기화 — 순회 대상).
+ * `area` 파라미터를 생략하면 시도별 코드가 반환됩니다.
+ */
+export async function fetchAreaCodes(opts: FetchAreaCodesOptions = {}): Promise<AreaCodeItem[]> {
+  const certKey = opts.certKey ?? env.OPINET_CERT_KEY;
+  const retries = opts.retries ?? 1;
+
+  const params = new URLSearchParams({ certkey: certKey, out: "json" });
+  const url = `${env.OPINET_BASE_URL}/areaCode.do?${params}`;
+
+  return getSemaphore().run(async () => {
+    const res = await fetchWithRetry(url, TIMEOUT_MS, retries);
+    const json = await res.json();
+    const parsed = AreaCodeResponseSchema.safeParse(json);
+    if (!parsed.success) throw new Error(`오피넷 지역코드 응답 파싱 실패: ${parsed.error.message}`);
+    return parsed.data.RESULT.OIL;
+  });
+}
+
+export interface FetchAvgSigunPriceOptions {
+  sido: string;          // 시도코드 2자리
+  certKey?: string;
+  retries?: number;
+}
+
+/**
+ * 시도 내 시군구별 평균가격 조회 (§7.2 `sigungu_avg_price` 동기화 원본).
+ * `sigun`을 생략하면 해당 시도의 전체 시군구가 반환됩니다.
+ */
+export async function fetchAvgSigunPrice(
+  opts: FetchAvgSigunPriceOptions,
+): Promise<AvgSigunPriceItem[]> {
+  const certKey = opts.certKey ?? env.OPINET_CERT_KEY;
+  const retries = opts.retries ?? 1;
+
+  const params = new URLSearchParams({ certkey: certKey, out: "json", sido: opts.sido });
+  const url = `${env.OPINET_BASE_URL}/avgSigunPrice.do?${params}`;
+
+  return getSemaphore().run(async () => {
+    const res = await fetchWithRetry(url, TIMEOUT_MS, retries);
+    const json = await res.json();
+    const parsed = AvgSigunPriceResponseSchema.safeParse(json);
+    if (!parsed.success) throw new Error(`오피넷 시군구 평균가 응답 파싱 실패: ${parsed.error.message}`);
+    return parsed.data.RESULT.OIL;
   });
 }
