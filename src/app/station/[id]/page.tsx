@@ -19,7 +19,7 @@ import { distanceMToKm, durationSToMin } from "@/domain/pricing";
 import { isPriceStale } from "@/domain/cache-ttl";
 import { PRICE_STALE_HOURS } from "@/domain/params";
 import { wgs84 } from "@/domain/types";
-import { buildDeeplink, type NaviApp } from "@/domain/deeplink";
+import { buildDeeplink, buildWebFallbackUrl, type NaviApp } from "@/domain/deeplink";
 import type { NaviEvent } from "@/app/api/_lib/schema";
 
 const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
@@ -29,11 +29,17 @@ const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
 ];
 
 function reportNaviClick(event: NaviEvent) {
-  void fetch("/api/events/navi", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(event),
-  }).catch(() => {});
+  // 직후에 window.location.assign으로 이동하므로 fetch는 종종 중단된다 —
+  // sendBeacon은 페이지 이동 중에도 전송을 보장한다.
+  const body = new Blob([JSON.stringify(event)], { type: "application/json" });
+  if (!navigator.sendBeacon?.("/api/events/navi", body)) {
+    void fetch("/api/events/navi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+      keepalive: true,
+    }).catch(() => {});
+  }
 }
 
 export default function StationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -103,7 +109,7 @@ export function StationDetailView({ id }: { id: string }) {
     [...result.candidates].sort((a, b) => a.price - b.price).findIndex((c) => c.id === id) + 1;
 
   function handleNaviClick(app: NaviApp, appName?: string) {
-    const href = buildDeeplink({
+    const deeplinkInput = {
       app,
       origin: wgs84(origin!.lat, origin!.lng),
       destination: wgs84(destination!.lat, destination!.lng),
@@ -112,7 +118,7 @@ export function StationDetailView({ id }: { id: string }) {
       destinationName: destination!.name,
       waypointName: candidate!.name,
       appName,
-    });
+    };
     reportNaviClick({
       searchId: result!.searchId,
       app,
@@ -121,7 +127,15 @@ export function StationDetailView({ id }: { id: string }) {
       netSaving: netSavingValue,
       detourDistanceM: distanceM,
     });
-    window.location.assign(href);
+
+    // 앱 스킴을 처리할 핸들러가 없는 데스크톱에서는 PC 웹 지도로 폴백한다.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const webFallback = !isMobile ? buildWebFallbackUrl(deeplinkInput) : null;
+    if (webFallback) {
+      window.open(webFallback, "_blank", "noopener,noreferrer");
+      return;
+    }
+    window.location.assign(buildDeeplink(deeplinkInput));
   }
 
   return (
