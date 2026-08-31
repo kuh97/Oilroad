@@ -4,6 +4,7 @@
  * F8 상세 지도 — 기본 경로(회색) + 경유 경로(강조). PRODUCT.md §5.4.
  */
 
+import { useEffect, useState } from "react";
 import { useKakaoLoader, Map, Polyline, MapMarker } from "react-kakao-maps-sdk";
 import type { WirePoint } from "@/app/api/_lib/types";
 
@@ -16,7 +17,25 @@ export interface RouteMapProps {
 }
 
 export function RouteMap({ baseRoutePolyline, viaRoutePolyline, station, origin, destination }: RouteMapProps) {
-  const [loading, error] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "" });
+  // 기본 SDK url이 프로토콜 상대경로(//dapi.kakao.com/...)라 http://localhost 개발 서버에서
+  // http로 해석되어 로드에 실패한다 — https를 명시해 우회한다.
+  const [loading, error] = useKakaoLoader({
+    appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "",
+    url: "https://dapi.kakao.com/v2/maps/sdk.js",
+  });
+  const [map, setMap] = useState<kakao.maps.Map | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    // center={station} + 고정 level만으로는 우회가 클 때 경로 상당 부분이 화면 밖으로
+    // 잘려나가 마치 길이 끊긴 것처럼 보인다 — 경로 전체가 담기도록 뷰포트를 맞춘다.
+    const bounds = new kakao.maps.LatLngBounds();
+    const points = [origin, destination, station, ...baseRoutePolyline, ...(viaRoutePolyline ?? [])];
+    for (const p of points) {
+      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    }
+    map.setBounds(bounds, 24, 24, 24, 24);
+  }, [map, origin, destination, station, baseRoutePolyline, viaRoutePolyline]);
 
   if (loading) {
     return (
@@ -34,7 +53,12 @@ export function RouteMap({ baseRoutePolyline, viaRoutePolyline, station, origin,
   }
 
   return (
-    <Map center={station} style={{ width: "100%", height: "224px", borderRadius: "0.5rem" }} level={7}>
+    <Map
+      center={station}
+      style={{ width: "100%", height: "224px", borderRadius: "0.5rem" }}
+      level={7}
+      onCreate={setMap}
+    >
       {baseRoutePolyline.length > 0 && (
         <Polyline path={baseRoutePolyline} strokeColor="#9CA3AF" strokeWeight={4} strokeOpacity={0.8} />
       )}
