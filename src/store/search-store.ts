@@ -59,6 +59,9 @@ interface SearchState {
   // ─── 검색 진행 상태 (휘발성) ───────────────────────────────────────────
   isLoading: boolean;
   progressStep: ProgressStep | null;
+  /** 실제로 거쳐간 단계만 누적 — EXPAND는 발동 안 하면 건너뛰므로, 순서상 지나간 것으로
+   * 잘못 표시하지 않으려면 인덱스 비교가 아니라 이 집합으로 판정해야 한다. */
+  progressStepsSeen: ProgressStep[];
   /** STEP 1 직후 도착 — result 전에 헤더·지도를 먼저 그리는 용도 (§6.2) */
   baseRoute: WireBaseRoute | null;
   /** STEP 9 직후 추정치 — result 도착 전 카드 프리뷰용. 전부 detour.precise===false (§6.2) */
@@ -133,6 +136,7 @@ export const useSearchStore = create<SearchState>()(
 
       isLoading: false,
       progressStep: null,
+      progressStepsSeen: [],
       baseRoute: null,
       partial: null,
       result: null,
@@ -152,13 +156,18 @@ export const useSearchStore = create<SearchState>()(
         set({
           isLoading: true,
           progressStep: "ROUTE",
+          progressStepsSeen: ["ROUTE"],
           baseRoute: null,
           partial: null,
           result: null,
           streamWarnings: [],
           error: null,
         }),
-      setProgressStep: (step) => set({ progressStep: step }),
+      setProgressStep: (step) =>
+        set((s) => ({
+          progressStep: step,
+          progressStepsSeen: s.progressStepsSeen.includes(step) ? s.progressStepsSeen : [...s.progressStepsSeen, step],
+        })),
       setBaseRoute: (baseRoute) => set({ baseRoute }),
       setPartial: (partial) => set({ partial }),
       pushWarning: (warning) => set({ streamWarnings: [...get().streamWarnings, warning] }),
@@ -179,6 +188,7 @@ export const useSearchStore = create<SearchState>()(
         set({
           isLoading: false,
           progressStep: null,
+          progressStepsSeen: [],
           result: null,
           streamWarnings: [],
           error: null,

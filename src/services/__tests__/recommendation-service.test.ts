@@ -102,6 +102,18 @@ describe("search — 확장 미발동 (T1+T2 충분)", () => {
     expect(events.some((e) => e.type === "progress" && e.step === "EXPAND")).toBe(false);
     expect(result.candidates.length).toBeGreaterThan(0);
   });
+
+  it("각 후보에 priceUpdatedAt(오피넷 갱신 스케줄 근사치)이 채워진다 — §6.1 가격 기준시각 표시용", async () => {
+    collectStationsMock.mockResolvedValue({
+      stations: [{ station: station({ id: "A1", location: wgs84(37.0, 127.1) }), price: 1700 }],
+      warnings: [],
+    });
+
+    const result = await search(baseInput(), undefined, FAKE_DEPS);
+    for (const c of result.candidates) {
+      expect(c.priceUpdatedAt).toBeInstanceOf(Date);
+    }
+  });
 });
 
 describe("search — T3 게이트 (STEP8)", () => {

@@ -15,6 +15,7 @@ beforeEach(() => {
     mode: "balanced",
     isLoading: false,
     progressStep: null,
+    progressStepsSeen: [],
     baseRoute: null,
     partial: null,
     result: null,
@@ -67,6 +68,16 @@ describe("search-store — 검색 진행 상태", () => {
     expect(state.isLoading).toBe(false);
     expect(state.progressStep).toBeNull();
     expect(state.result).toEqual({ searchId: "s-1" });
+  });
+
+  it("setProgressStep은 stepsSeen에 누적되고, EXPAND를 건너뛰면 그 단계는 seen에 없다", () => {
+    useSearchStore.getState().startSearch(); // ROUTE
+    useSearchStore.getState().setProgressStep("COLLECT");
+    useSearchStore.getState().setProgressStep("PRECISE"); // EXPAND 건너뜀
+
+    const state = useSearchStore.getState();
+    expect(state.progressStepsSeen).toEqual(["ROUTE", "COLLECT", "PRECISE"]);
+    expect(state.progressStepsSeen).not.toContain("EXPAND");
   });
 
   it("pushWarning은 누적된다", () => {
