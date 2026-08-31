@@ -1101,7 +1101,7 @@ Client → domain/deeplink.build(app, origin, station, destination)
 | **선행** | Phase 8                                                 |
 | **범위** | Zustand 스토어 · `lib/api` 훅 · 화면 3개 · 카카오맵 SDK |
 
-**완료 기준 — UI 불변식 8개 체크리스트** ([`../AGENTS.md`](../AGENTS.md) §6)
+**완료 기준 — UI 불변식 8개 체크리스트 — 완료 (2026-08-31)** ([`../AGENTS.md`](../AGENTS.md) §6)
 
 확장 고지 배너 / 가격 기준시각 / `오래된 정보` 배지 / 계산 전제 표시 / 면책 문구 / T3 전화 확인 / 티맵 안내 / 후보 0건 대안
 
@@ -1113,6 +1113,15 @@ Client → domain/deeplink.build(app, origin, station, destination)
 - 스토어가 빈 상태로 `/station/:id` 직접 진입 시 "검색 컨텍스트 없음" 화면
 
 **구현 중 발견 — `Candidate.priceUpdatedAt`이 항상 비어 있었음.** "가격 기준시각" 표시(§6.1, 위 불변식)는 이 필드에 의존하는데, Phase 7 `recommendation-service.finalizeCandidates`가 이 필드를 채우지 않고 있었습니다(옵셔널이라 타입 오류로도 드러나지 않음). `domain/cache-ttl.approximateLastUpdateTime(now)`(Phase 2에 이미 존재 — 오피넷이 실제 기준시각을 안 줄 때의 근사치)를 채우도록 고쳤습니다.
+
+**의도적으로 범위를 좁힌 것들 — 정직하게 미룸**
+
+- **F10(내 주변)은 이번 Phase에서 빠짐.** PRODUCT.md §5.6이 "여기에 시간을 많이 쓰지 말라"고 명시한 대로, `useNearbyStations` 훅과 `/nearby` 화면은 다음으로 미룹니다. `GET /api/stations/nearby`는 Phase 8에서 이미 만들어져 있습니다.
+- **A2(필터 때문에 0건) 진단을 단순화함.** PRODUCT.md §5.2는 "어떤 필터가 원인인지 특정"하라고 하지만, 이는 필터를 하나씩 빼며 재검색해야 해 오피넷 예산을 추가로 씁니다. 지금은 활성 필터가 있으면 "필터 초기화하고 다시 찾기" 하나만 제시합니다 — 원인 필터를 짚어주지는 않습니다.
+- **A1(확장해도 0건) 시 "목적지·출발지 근처 검색 제안"은 구현 안 함.** `/nearby`가 없어 제안할 화면 자체가 없습니다 — F10을 만들 때 같이 연결해야 합니다.
+- **딥링크 미설치 폴백(폴백 타이머 → 스토어 이동)은 만들지 않음.** ARCHITECTURE.md 자체가 이를 Phase 10 범위로 분리해뒀습니다 — 이번엔 스킴 링크(`kakaomap://`, `nmap://`, `tmap://`)만 연결했습니다.
+- **네이버지도 `appname` 값은 `"oilroad"` placeholder.** 실제 등록된 앱 식별자가 필요하면 나중에 교체해야 합니다.
+- **실 데이터로 브라우저 검증을 못 함.** 로컬 `.env.local`에 `OPINET_CERT_KEY`·`DATABASE_URL` 등이 없어, 검색 결과가 실제로 채워진 화면(카드·배너·지도)은 라이브로 못 보고 RTL 렌더 테스트로 대체했습니다.
 
 ---
 
