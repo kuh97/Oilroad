@@ -27,4 +27,5 @@ export const env = {
   get KAKAO_LOCAL_BASE_URL() { return optional("KAKAO_LOCAL_BASE_URL", "https://dapi.kakao.com"); },
   get DATABASE_URL() { return required("DATABASE_URL"); },
   get CRON_SECRET() { return required("CRON_SECRET"); },
+  get FEATURE_EXPANSION_ENABLED() { return optional("FEATURE_EXPANSION_ENABLED", "false") === "true"; },
 };

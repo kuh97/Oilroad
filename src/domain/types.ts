@@ -103,14 +103,33 @@ export interface BaseRoute {
   polyline: WGS84Point[];
 }
 
+/** ARCHITECTURE.md §6.1 Warning */
+export type WarningCode =
+  | "PARTIAL_STATION_FETCH_FAILED"
+  | "QUOTA_EXCEEDED"
+  | "TIMEOUT"
+  | "SHORT_ROUTE"
+  | "NO_REFERENCE_PRICE";
+
+export interface Warning {
+  code: WarningCode;
+  message: string;
+}
+
+export interface ExpansionInfo {
+  triggered: boolean;
+  finalRadiusM: number;  // 최종 목록에 남은 T3의 최대 d_perp (없으면 T2_MAX)
+  skippedReason?: "QUOTA" | "DISABLED";
+}
+
 export interface SearchResult {
+  searchId: string;   // 익명. 딥링크 이벤트 연결용
   baseRoute: BaseRoute;
   candidates: Candidate[];
-  referencePrice: number;
-  refPriceSource: RefPriceSource;
-  expansionTriggered: boolean;
-  finalRadiusM: number;  // 최종 T3 최대 d_perp (없으면 T2_MAX)
-  warnings: string[];
+  referencePrice: number | null;       // P_ref. A14면 null
+  refPriceSource: RefPriceSource | null;
+  expansion: ExpansionInfo;
+  warnings: Warning[];
 }
 
 // ─── 장소 검색 (F1 자동완성) ─────────────────────────────────────────────────
@@ -137,6 +156,7 @@ export interface SearchInput {
   filters: {
     facilities: Facility[];
     brands: BrandCode[];
+    kpetroOnly: boolean;
   };
   mode: Mode;
 }

@@ -1051,7 +1051,7 @@ Client → domain/deeplink.build(app, origin, station, destination)
 | **선행** | Phase 2·3·4·5·6 전부                                     |
 | **범위** | `route` · `station` · `price` · `recommendation-service` |
 
-**완료 기준 — MSW 통합 테스트 4경로**
+**완료 기준 — MSW 통합 테스트 4경로 — 완료 (2026-08-31)**
 
 1. 확장 미발동 (T1+T2 충분)
 2. 확장 발동
@@ -1059,6 +1059,10 @@ Client → domain/deeplink.build(app, origin, station, destination)
 4. 부분 실패 → 성공 구간으로 진행 + `warning`
 
 추가로 **`onProgress` 콜백이 각 STEP에서 방출되는지**, 그리고 **콜백 없이 호출해도 동일한 `SearchResult`가 나오는지** 확인합니다 (§6.2.1 폴백의 전제).
+
+**구현 중 발견 — `domain/types.ts`가 §6.1 API Contract와 어긋나 있었음.** `SearchResult`에 `searchId`가 없고 `referencePrice`/`refPriceSource`가 non-null이었으며 `warnings`가 `string[]`(§6.1의 `Warning{code,message}[]`가 아님)이었고, `SearchInput.filters`엔 `kpetroOnly`가 없었습니다. Phase 2 당시 API Contract가 확정되기 전에 먼저 작성된 코드가 이후 갱신을 반영하지 못한 것으로 보입니다. AGENTS.md §1 원칙("코드와 문서가 다르면 코드를 고치는 것이 기본")에 따라 `domain/types.ts`를 §6.1에 맞게 수정했습니다 — 이 타입을 참조하는 코드가 아직 없어 다른 곳에 영향은 없었습니다.
+
+**`route-service`/`station-service`의 캐시·예산 접근은 `RedisLike` 인터페이스로 주입받습니다**(기본값 `getRedis()`) — `opinet/budget.ts`의 `BudgetStore` 주입 패턴과 동일한 이유(테스트 용이성)입니다. `price-service`는 PRODUCT.md §8의 "시군구 가중평균"(시군구→시도→전국 폴백)을 구현하기 위해 `db/repositories.ts`에 `findSidoAvgPrice`·`findNationalAvgPrice`를 추가했습니다.
 
 ---
 

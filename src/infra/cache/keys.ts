@@ -4,13 +4,29 @@
  * ARCHITECTURE.md §8
  */
 
-import type { KatecPoint } from "@/domain/types";
+import { wgs84ToProjected } from "@/domain/geo";
+import type { KatecPoint, WGS84Point } from "@/domain/types";
 
 /** 2km 격자 스냅 — 반경검색 캐시 키 중복 최대화 */
 const STATION_GRID_M = 2_000;
 
 function snapToGrid(coord: number, gridSize: number): number {
   return Math.round(coord / gridSize) * gridSize;
+}
+
+/**
+ * WGS84 좌표를 2km 격자로 스냅한 문자열로 변환.
+ * `routeKey`/`placeKey`의 grid 인자를 만드는 데 쓰고, Phase 11 익명 이벤트 로깅의
+ * `origin_cell`/`dest_cell`도 같은 함수를 재사용합니다 (§8.3).
+ *
+ * @param point WGS84 좌표
+ * @param gridM 격자 크기 (m). 기본 2,000
+ */
+export function gridSnapWgs84(point: WGS84Point, gridM: number = STATION_GRID_M): string {
+  const projected = wgs84ToProjected(point);
+  const gx = snapToGrid(projected.x, gridM);
+  const gy = snapToGrid(projected.y, gridM);
+  return `${gx}_${gy}`;
 }
 
 /**
