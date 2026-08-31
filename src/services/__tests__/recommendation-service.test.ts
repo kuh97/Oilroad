@@ -154,6 +154,34 @@ describe("search — T3 게이트 (STEP8)", () => {
   });
 });
 
+describe("search — 짧은 경로에서도 우회 후보를 보여준다 (사용자 실측: 남한산성입구역→을지대학교)", () => {
+  it("기본 경로가 MIN_ROUTE_DISTANCE 미만이면 우회가 D_base×50%를 넘어도 후보를 제외하지 않는다", async () => {
+    // 기본 경로 2km — 실사용 보고 사례와 같은 규모. 50% cap이면 1km인데, 실제 우회는
+    // 훨씬 크게 나온다(정밀 계산 결과 10km). 짧은 경로 예외가 없으면 STEP11에서 전부 걸러진다.
+    getRouteMock.mockImplementation(async (opts) => {
+      if (opts.waypoint) {
+        return { distanceM: 12_000, durationS: 900, polyline: BASE_ROUTE.polyline }; // 우회 10,000m
+      }
+      return { distanceM: 2_000, durationS: 300, polyline: BASE_ROUTE.polyline };
+    });
+    collectStationsMock.mockResolvedValue({
+      stations: [
+        { station: station({ id: "A1", location: wgs84(37.0, 127.1) }), price: 1700 }, // T1
+        { station: station({ id: "A2", location: wgs84(37.0, 127.2) }), price: 1750 }, // T1
+        { station: station({ id: "A3", location: wgs84(37.05, 127.15) }), price: 1500 }, // T3, 저렴 → 게이트 통과
+      ],
+      warnings: [],
+    });
+
+    const result = await search(baseInput(), undefined, FAKE_DEPS);
+
+    const t3 = result.candidates.find((c) => c.station.id === "A3");
+    expect(t3).toBeDefined();
+    expect(t3!.detour.distanceM).toBe(10_000); // 50% cap(1,000m)을 훨씬 넘지만 살아있어야 함
+    expect(result.warnings).toContainEqual(expect.objectContaining({ code: "SHORT_ROUTE" }));
+  });
+});
+
 describe("search — 확장 발동", () => {
   it("T1+T2가 MIN_CANDIDATES 미만이면 확장 수집을 하고 결과에 반영한다", async () => {
     collectStationsMock

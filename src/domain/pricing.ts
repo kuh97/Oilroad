@@ -6,7 +6,15 @@
  * 연비(km/L), 시간가치(원/분) 변환은 함수 내부에서만 합니다.
  */
 
-import { DETOUR_ESTIMATE_FACTOR, AVG_SPEED, V_TIME, OUTLIER_SIGMA, P_REF_MIN_BASE, DETOUR_CAP_RATIO } from "./params";
+import {
+  DETOUR_ESTIMATE_FACTOR,
+  AVG_SPEED,
+  V_TIME,
+  OUTLIER_SIGMA,
+  P_REF_MIN_BASE,
+  DETOUR_CAP_RATIO,
+  MIN_ROUTE_DISTANCE,
+} from "./params";
 import type { Mode, RefPriceSource, Scores } from "./types";
 
 // ─── 우회 추정 ───────────────────────────────────────────────────────────────
@@ -114,8 +122,17 @@ export function passesT3Gate(args: {
 /**
  * 우회 거리가 기본 경로 대비 DETOUR_CAP_RATIO 초과 여부.
  * 초과 시 후보 제거 (정밀 계산 이후에만 적용).
+ *
+ * `baseDistanceM`이 `MIN_ROUTE_DISTANCE` 미만이면 이 비율 cap을 적용하지 않는다.
+ * 이 규칙은 원래 장거리 여행에서 "우회가 절반을 넘으면 경로가 사실상 달라진
+ * 것"을 막으려고 만들었는데, 짧은 경로에 그대로 적용하면 cap이 1~2km로
+ * 수렴해 실제로 우회할 가치가 있는 후보까지 전부 제외된다(Phase 9 실측 —
+ * 2km 경로에서 cap이 1km가 되어 수진역 LPG 같은 T3 후보가 전부 사라짐).
+ * 짧은 경로에서는 T3_MAX(우회 탐색 상한)와 NetSaving>0 게이트만으로
+ * "어느 정도 범위"를 이미 제한하므로 이 cap이 없어도 무한정 찾아주지 않는다.
  */
 export function exceedsDetourCap(detourDistanceM: number, baseDistanceM: number): boolean {
+  if (baseDistanceM < MIN_ROUTE_DISTANCE) return false;
   return detourDistanceM > baseDistanceM * DETOUR_CAP_RATIO;
 }
 

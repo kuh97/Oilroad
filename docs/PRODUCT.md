@@ -946,7 +946,7 @@ for each s in targets (병렬):
 
 ```
 1. 정밀값이 있으면 정밀값으로, 없으면 추정값으로 NetSaving·점수 재계산
-2. 우회가 D_base × DETOUR_CAP_RATIO(50%)를 넘는 후보 제거
+2. 우회가 D_base × DETOUR_CAP_RATIO(50%)를 넘는 후보 제거 (단, D_base < MIN_ROUTE_DISTANCE면 이 단계 생략 — §10.1 A6)
 3. 현재 모드 기준 오름차순 정렬
 4. 상위 MAX_RESULTS(15)개로 자름
 5. 추천 이유 템플릿 적용 (§5.4)
@@ -1048,7 +1048,7 @@ Score_balanced(s) = TotalCost(s) + (ΔT(s)/60) × V_TIME     [원]
 | `DETOUR_ESTIMATE_FACTOR` | 2.0    | —     | `ΔD̂ = 계수 × d_perp`                    | **Phase 5 실측으로 유지 결정** (중앙값 0.67~2.11, 표본 부족으로 강한 확정은 아님, §6.5) |
 | `V_TIME`                 | 200    | 원/분 | 균형 모드 시간 가치                     |                                                             |
 | `OUTLIER_SIGMA`          | 3      | σ     | 이상 가격 제외 기준                     |                                                             |
-| `DETOUR_CAP_RATIO`       | 0.5    | —     | 우회가 `D_base`의 이 비율을 넘으면 제외 |                                                             |
+| `DETOUR_CAP_RATIO`       | 0.5    | —     | 우회가 `D_base`의 이 비율을 넘으면 제외 | **`D_base < MIN_ROUTE_DISTANCE`면 미적용** (Phase 9 실측 — §10.1 A6) |
 | `PRICE_STALE_HOURS`      | 6      | 시간  | 이 시간 넘으면 "오래된 정보" 배지       |                                                             |
 | `MIN_ROUTE_DISTANCE`     | 20,000 | m     | 이보다 짧으면 안내 후 진행              |                                                             |
 | `MIN_OD_GAP`             | 500    | m     | 출발지·목적지 최소 간격                 |                                                             |
@@ -1083,7 +1083,7 @@ Score_balanced(s) = TotalCost(s) + (ΔT(s)/60) × V_TIME     [원]
 | A3  | 가격 0원 / null                                     | 후보에서 제외                                                                                     |
 | A4  | 이상 저가·고가                                      | `pool` 중앙값 ±`OUTLIER_SIGMA`σ 벗어나면 제외 + 로그                                              |
 | A5  | 우회 거리·시간 음수                                 | 0으로 클램프. "우회 없음" 표시                                                                    |
-| A6  | 우회가 `D_base × DETOUR_CAP_RATIO` 초과             | 후보에서 제외 (경로가 사실상 달라짐)                                                              |
+| A6  | 우회가 `D_base × DETOUR_CAP_RATIO` 초과             | 후보에서 제외 (경로가 사실상 달라짐). **단 `D_base < MIN_ROUTE_DISTANCE`면 이 cap을 적용하지 않음** — 짧은 경로에서는 비율이 곧 1~2km로 수렴해 정당한 우회까지 막는다(Phase 9 실측). `T3_MAX`·`NetSaving>0` 게이트가 대신 범위를 제한 |
 | A7  | 정밀 계산 후 `NetSaving` 음수 전환                  | 제거하지 않고 회색 처리                                                                           |
 | A8  | 개별 경유 경로 API 실패                             | 해당 후보만 추정치 유지. 전체 실패 아님                                                           |
 | A9  | 주유소 API 일부 구간 실패                           | 성공 구간으로 진행 + 배너 고지                                                                    |

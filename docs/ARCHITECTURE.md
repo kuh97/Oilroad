@@ -1120,6 +1120,8 @@ Client → domain/deeplink.build(app, origin, station, destination)
 
 **구현 중 발견 — `PlaceAutocompleteInput`이 부모가 바깥에서 값을 바꿔도 반영 안 함.** "현재 위치" 버튼과 최근 검색 클릭이 스토어의 `origin`/`destination`을 바꿔도 입력창에 표시되는 텍스트는 그대로였습니다 — 컴포넌트 내부 `query` state를 `useState(value?.name ?? "")`로 마운트 시 한 번만 초기화하고 이후 `value` prop 변화를 반영하지 않았기 때문입니다. React 공식 권장 패턴인 "렌더링 중 상태 조정"(이전 값과 비교해 렌더 중에 `setState`)으로 고쳤습니다 — `useEffect` 안에서 `setState`를 부르는 것보다 리렌더 한 번을 아낄 수 있고, 이 프로젝트의 `react-hooks/set-state-in-effect` 린트 규칙도 피합니다.
 
+**구현 중 발견 — 짧은 경로에서 `DETOUR_CAP_RATIO`가 우회 후보를 전부 걸러냄(알고리즘 설계 갭).** 사용자가 실제 짧은 경로(남한산성입구역 → 을지대학교, 기본 경로 2km)로 검색해보고 발견함. `domain/pricing.exceedsDetourCap`은 우회가 `D_base × 0.5`를 넘으면 후보를 제외하는데(§7.2 STEP 11 ②, PRODUCT.md §10.1 A6), 이 규칙은 장거리 여행(92km 예시 — cap이 46km)을 전제로 설계되어 있었습니다. 기본 경로가 2km면 cap이 1km가 되어, 실제로 우회할 가치가 있는 T3 후보(예: 몇 km 밖의 LPG 충전소)까지 전부 제외됐습니다. `baseDistanceM < MIN_ROUTE_DISTANCE`(20km, 이미 `SHORT_ROUTE` 경고 기준으로 쓰던 값)면 이 cap을 적용하지 않도록 고쳤습니다 — `T3_MAX`(우회 탐색 상한 15km)와 `NetSaving > 0` 게이트가 이미 "어느 정도 범위"를 제한하므로 cap 없이도 무한정 찾아주지는 않습니다. `PRODUCT.md` §9.1·§10.1·§7.2 STEP11을 함께 갱신했습니다.
+
 **의도적으로 범위를 좁힌 것들 — 정직하게 미룸**
 
 - **F10(내 주변)은 이번 Phase에서 빠짐.** PRODUCT.md §5.6이 "여기에 시간을 많이 쓰지 말라"고 명시한 대로, `useNearbyStations` 훅과 `/nearby` 화면은 다음으로 미룹니다. `GET /api/stations/nearby`는 Phase 8에서 이미 만들어져 있습니다.
