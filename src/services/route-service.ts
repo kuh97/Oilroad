@@ -12,6 +12,14 @@ import type { BaseRoute, Fuel, WGS84Point } from "@/domain/types";
 
 const ROUTE_TTL_SECONDS = 60 * 60; // 1시간 — 교통 상황 반영 (§8)
 
+// 경유지(주유소)는 gridSnapWgs84 기본값(2km, 반경검색용)으로 스냅하면 같은 격자 안의
+// 서로 다른 주유소가 캐시 키를 공유해 남의 경유 경로를 대신 받는다 — 실측: 남한산성입구역↔
+// 단대오거리역 사이 2km 격자 한 칸에 대성산업·에코충전소·성남에너지 등 5개 주유소가 들어가
+// 우회거리가 최대 3배까지 틀어짐. §6.3 "정밀 계산은 후보당 카카오 API 1회"라는 정밀성
+// 요구를 지키려면 경유지만은 격자를 실질적으로 무의미할 만큼 좁혀야 한다(부동소수점 요청
+// 중복만 흡수).
+const ROUTE_VIA_GRID_M = 10;
+
 /** route-service·station-service가 공유하는 최소 Redis 인터페이스 */
 export interface RedisLike {
   get(key: string): Promise<string | null>;
@@ -67,7 +75,7 @@ export async function getRoute(opts: GetRouteOptions): Promise<BaseRoute> {
 
   const originGrid = gridSnapWgs84(opts.origin);
   const destGrid = gridSnapWgs84(opts.destination);
-  const viaGrid = opts.waypoint ? gridSnapWgs84(opts.waypoint) : undefined;
+  const viaGrid = opts.waypoint ? gridSnapWgs84(opts.waypoint, ROUTE_VIA_GRID_M) : undefined;
   const key = routeKey(prefix, originGrid, destGrid, viaGrid);
 
   const cached = await redis.get(key);
