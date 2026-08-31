@@ -18,6 +18,7 @@ import {
   type AvgSigunPriceItem,
 } from "./schema";
 import type { KatecPoint } from "@/domain/types";
+import { SEARCH_RADIUS } from "@/domain/params";
 import { FUEL_TO_PRODCD } from "./mapper";
 import type { Fuel } from "@/domain/types";
 
@@ -121,7 +122,7 @@ export async function fetchRadius(opts: FetchRadiusOptions): Promise<OpinetRadiu
     out: "json",
     x: String(opts.center.x),
     y: String(opts.center.y),
-    radius: "5000",
+    radius: String(SEARCH_RADIUS),
     prodcd,
     sort: "1",
   });

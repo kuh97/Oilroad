@@ -38,6 +38,9 @@ export const MIN_OD_GAP = 500;           // m — 출발지·목적지 최소 �
 export const PLACE_QUERY_MIN_LEN = 2;   // 자
 export const PLACE_DEBOUNCE_MS = 300;   // ms
 
+// ─── 내 주변 (§5.6, §6.4) ───────────────────────────────────────────────────
+export const SEARCH_RADIUS = 5_000;  // m — 오피넷 aroundAll.do 고정 반경. API 최댓값(고정)
+
 // ─── 계산 전제 기본값 (§9.2) — 사용자가 수정 가능 ────────────────────────────
 export const DEFAULT_EFFICIENCY: Record<"GASOLINE" | "DIESEL" | "LPG", number> = {
   GASOLINE: 12,  // km/L  ⚠️ 공식 통계로 보정 필요 (Phase 5 §11.3)
