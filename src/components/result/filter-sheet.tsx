@@ -8,6 +8,7 @@
  * 재검색이 발동해 예산을 낭비하므로, "적용"을 눌러야 커밋되는 로컬 초안으로 둔다.
  */
 import { useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import {
   Drawer,
   DrawerTrigger,
@@ -29,7 +30,11 @@ const FACILITY_LABEL: Record<Facility, string> = {
 };
 const FACILITIES: Facility[] = ["CAR_WASH", "MAINTENANCE", "CVS"];
 
-const EMPTY_FILTERS: WireFilters = { facilities: [], brands: [], kpetroOnly: false };
+const EMPTY_FILTERS: WireFilters = {
+  facilities: [],
+  brands: [],
+  kpetroOnly: false,
+};
 
 /** 오피넷 POLL_DIV_CD ↔ 표시명 — PRODUCT.md §5.2. RTE·RTX는 "알뜰" 하나로 묶는다. */
 const BRAND_GROUPS: { label: string; codes: string[] }[] = [
@@ -59,25 +64,31 @@ export function FilterSheet({
         if (open) setDraft(filters); // 열 때마다 현재 적용된 값으로 초기화
       }}
     >
-      <DrawerTrigger render={<Button variant="outline" size="sm" />}>필터 ⚙</DrawerTrigger>
-      <DrawerContent>
+      <DrawerTrigger render={<Button variant="outline" size="sm" />}>
+        <SlidersHorizontal className="size-3.5" aria-hidden />
+        필터
+      </DrawerTrigger>
+      <DrawerContent className="sm:mx-auto sm:max-w-md">
         <DrawerHeader className="flex flex-row items-center justify-between">
           <DrawerTitle>필터</DrawerTitle>
           <button
             type="button"
-            className="text-sm text-muted-foreground underline"
+            className="text-sm text-muted-foreground underline underline-offset-2"
             onClick={() => setDraft(EMPTY_FILTERS)}
           >
             초기화
           </button>
         </DrawerHeader>
 
-        <div className="flex flex-col gap-4 px-4">
-          <section>
-            <h3 className="mb-2 text-sm font-medium">시설</h3>
-            <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-5 px-4 pb-4">
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">시설</h3>
+            <div className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border">
               {FACILITIES.map((f) => (
-                <label key={f} className="flex items-center justify-between text-sm">
+                <label
+                  key={f}
+                  className="flex items-center justify-between bg-card px-3.5 py-2.5 text-sm"
+                >
                   {FACILITY_LABEL[f]}
                   <Switch
                     checked={draft.facilities.includes(f)}
@@ -95,8 +106,8 @@ export function FilterSheet({
             </div>
           </section>
 
-          <section>
-            <h3 className="mb-2 text-sm font-medium">브랜드</h3>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">브랜드</h3>
             <div className="flex flex-wrap gap-2">
               {BRAND_GROUPS.map((g) => {
                 const isOn = g.codes.every((c) => draft.brands.includes(c));
@@ -113,8 +124,10 @@ export function FilterSheet({
                       }))
                     }
                     className={cn(
-                      "rounded-full border px-3 py-1 text-sm",
-                      isOn ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                      "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      isOn
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-foreground hover:bg-muted",
                     )}
                   >
                     {g.label}
@@ -124,14 +137,14 @@ export function FilterSheet({
             </div>
           </section>
 
-          <section>
-            <label className="flex items-center justify-between text-sm font-medium">
-              품질인증 주유소만
-              <Switch
-                checked={draft.kpetroOnly}
-                onCheckedChange={(checked) => setDraft((d) => ({ ...d, kpetroOnly: Boolean(checked) }))}
-              />
-            </label>
+          <section className="flex items-center justify-between rounded-xl border border-border bg-card px-3.5 py-2.5">
+            <span className="text-sm font-semibold">품질인증 주유소만</span>
+            <Switch
+              checked={draft.kpetroOnly}
+              onCheckedChange={(checked) =>
+                setDraft((d) => ({ ...d, kpetroOnly: Boolean(checked) }))
+              }
+            />
           </section>
 
           <p className="text-xs text-muted-foreground">
@@ -140,7 +153,17 @@ export function FilterSheet({
         </div>
 
         <DrawerFooter>
-          <DrawerClose render={<Button onClick={() => onApply(draft)} />}>적용</DrawerClose>
+          <DrawerClose
+            render={
+              <Button
+                size="xl"
+                className="w-full"
+                onClick={() => onApply(draft)}
+              />
+            }
+          >
+            적용
+          </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

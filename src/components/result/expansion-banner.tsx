@@ -6,23 +6,31 @@
  * wire SearchResult에는 확장 전 후보 수가 없어 "N곳뿐이어서"의 정확한 개수는
  * 표시하지 못한다 — 있는 정보(도달한 반경)만으로 정직하게 문구를 구성한다.
  */
+import { Info, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { WireExpansion } from "@/app/api/_lib/types";
 
 export function ExpansionBanner({ expansion }: { expansion: WireExpansion }) {
   if (expansion.triggered) {
     const km = (expansion.finalRadiusM / 1000).toFixed(1).replace(/\.0$/, "");
     return (
-      <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100">
-        ℹ️ 경로 주변에서 조건에 맞는 충전소를 충분히 찾지 못해 {km}km까지 넓혀 찾았습니다.
-      </p>
+      <Alert variant="info">
+        <Info aria-hidden />
+        <AlertDescription className="text-info-foreground">
+          경로 주변에서 조건에 맞는 충전소를 충분히 찾지 못해 {km}km까지 넓혀 찾았습니다.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   if (expansion.skippedReason === "QUOTA") {
     return (
-      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-        ⚠️ 오늘의 호출 한도로 더 넓게 찾지 못했습니다. 기본 범위 결과입니다.
-      </p>
+      <Alert variant="warning">
+        <AlertTriangle aria-hidden />
+        <AlertDescription className="text-warning-foreground">
+          오늘의 호출 한도로 더 넓게 찾지 못했습니다. 기본 범위 결과입니다.
+        </AlertDescription>
+      </Alert>
     );
   }
 

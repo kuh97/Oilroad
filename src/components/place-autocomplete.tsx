@@ -15,34 +15,62 @@ export interface PlaceAutocompleteInputProps {
   value: WirePoint | null;
   onChange: (point: WirePoint | null) => void;
   onFocus?: () => void;
+  /** 테두리·라벨 없이 — 출발지/도착지를 한 박스로 합칠 때(홈 화면) 쓴다.
+   * 라벨은 화면엔 안 보이지만 aria-label로 그대로 남는다. */
+  bare?: boolean;
 }
 
-export function PlaceAutocompleteInput({ label, placeholder, value, onChange, onFocus }: PlaceAutocompleteInputProps) {
+export function PlaceAutocompleteInput({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onFocus,
+  bare = false,
+}: PlaceAutocompleteInputProps) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [isOpen, setIsOpen] = useState(false);
   const { places, error, retry } = usePlacesSearch(isOpen ? query : "");
 
-  // 현재 위치 버튼·최근 검색 클릭처럼 부모가 value를 바깥에서 바꾸는 걸 반영해야 한다.
-  // useEffect 대신 "렌더링 중 상태 조정" 패턴(React 공식 권장)을 쓴다 — 사용자가 직접
-  // 타이핑할 때는 onChange(null)만 호출되므로(아래) prevValue와 다시 같아지지 않아
-  // 타이핑 중인 텍스트를 덮어쓰지 않는다.
+  // 현재 위치 버튼·최근 검색 클릭·초기화 버튼처럼 부모가 value를 바깥에서 바꾸는 걸
+  // 반영해야 한다. useEffect 대신 "렌더링 중 상태 조정" 패턴(React 공식 권장)을 쓴다.
+  //
+  // value가 null로 바뀌는 경우가 둘인데 구분해야 한다 — ① 사용자가 직접 타이핑해서
+  // 아래 onChange가 "이미 확정된 좌표를 무효화"하려고 부른 onChange(null)(이땐 방금
+  // 타이핑한 텍스트를 지우면 안 됨), ② 부모가 "다시입력" 버튼 등으로 명시적으로 비운
+  // 경우(이땐 텍스트도 같이 비워야 함). skipNextClear로 ①인지 표시해둔다.
   const [prevValue, setPrevValue] = useState(value);
+  const [skipNextClear, setSkipNextClear] = useState(false);
   if (value !== prevValue) {
     setPrevValue(value);
-    if (value?.name) setQuery(value.name);
+    if (value?.name) {
+      setQuery(value.name);
+    } else if (skipNextClear) {
+      setSkipNextClear(false);
+    } else {
+      setQuery("");
+    }
   }
 
   return (
     <div className="relative">
-      <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>
+      {!bare && <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>}
       <input
-        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        aria-label={bare ? label : undefined}
+        className={
+          bare
+            ? "w-full bg-transparent px-3.5 py-3 text-sm outline-none placeholder:text-muted-foreground focus:bg-muted/40"
+            : "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        }
         placeholder={placeholder}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
           setIsOpen(true);
-          if (value) onChange(null); // 텍스트를 다시 편집하면 확정된 좌표는 무효화
+          if (value) {
+            setSkipNextClear(true); // 타이핑으로 인한 무효화 — 다음 sync에서 텍스트를 지우지 않는다
+            onChange(null); // 텍스트를 다시 편집하면 확정된 좌표는 무효화
+          }
         }}
         onFocus={() => {
           setIsOpen(true);

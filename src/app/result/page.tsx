@@ -6,7 +6,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingProgress } from "@/components/result/loading-progress";
 import { ExpansionBanner } from "@/components/result/expansion-banner";
 import { ModeTabs } from "@/components/result/mode-tabs";
@@ -21,9 +23,10 @@ import type { WireFilters, WireWarning } from "@/app/api/_lib/types";
 
 function WarningBanner({ warning }: { warning: WireWarning }) {
   return (
-    <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-      ⚠️ {warning.message}
-    </p>
+    <Alert variant="warning">
+      <AlertTriangle aria-hidden />
+      <AlertDescription className="text-warning-foreground">{warning.message}</AlertDescription>
+    </Alert>
   );
 }
 

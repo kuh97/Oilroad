@@ -64,7 +64,7 @@ export function RouteMap({ baseRoutePolyline, viaRoutePolyline, station, origin,
         <Polyline path={baseRoutePolyline} strokeColor="#9CA3AF" strokeWeight={4} strokeOpacity={0.8} />
       )}
       {viaRoutePolyline && viaRoutePolyline.length > 0 && (
-        <Polyline path={viaRoutePolyline} strokeColor="#2563EB" strokeWeight={5} />
+        <Polyline path={viaRoutePolyline} strokeColor="#3182f6" strokeWeight={5} />
       )}
       <MapMarker position={origin} image={labelPinImage("출발", PIN_COLOR.origin)} />
       <MapMarker position={destination} image={labelPinImage("도착", PIN_COLOR.destination)} />

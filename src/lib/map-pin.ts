@@ -4,10 +4,11 @@
  * 라벨은 핀 안에 바로 박아 넣어 화면을 덜 차지한다.
  */
 
+// docs/DESIGN.md §2 색상 토큰과 통일 — origin은 Product primary, destination은 Danger.
 export const PIN_COLOR = {
-  origin: "#2563EB", // blue-600 — 출발
-  destination: "#DC2626", // red-600 — 도착
-  waypoint: "#F59E0B", // amber-500 — 경유
+  origin: "#3182f6", // Product primary — 출발
+  destination: "#e42939", // Danger — 도착
+  waypoint: "#F59E0B", // amber-500 — 경유 (문서에 없는 확장 색)
 } as const;
 
 export const PIN_SIZE = { width: 32, height: 40 };
