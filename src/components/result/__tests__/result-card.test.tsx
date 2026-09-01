@@ -34,7 +34,6 @@ function candidate(overrides: Partial<WireCandidate> = {}): WireCandidate {
 describe("ResultCard", () => {
   it("T3 배지·정밀 우회 정보·이득 문구를 보여준다", () => {
     render(<ResultCard rank={1} candidate={candidate()} hasReferencePrice now={NOW} />);
-    expect(screen.getByText("🟡", { exact: false })).toBeTruthy();
     expect(screen.getByText("우회")).toBeTruthy();
     expect(screen.getByText(/\+18분/)).toBeTruthy();
     expect(screen.getByText(/\+12\.4km 우회/)).toBeTruthy();

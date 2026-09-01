@@ -26,7 +26,7 @@ export function ModeTabs({ value, onChange }: { value: Mode; onChange: (mode: Mo
           aria-selected={value === mode}
           onClick={() => onChange(mode)}
           className={cn(
-            "flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+            "flex-1 rounded-md px-1.5 py-1.5 text-center text-xs font-medium whitespace-nowrap transition-colors sm:text-sm",
             value === mode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >

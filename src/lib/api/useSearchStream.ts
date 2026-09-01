@@ -157,9 +157,11 @@ export function useSearchStream() {
 
           for (const frame of frames) {
             switch (frame.event) {
-              case "progress":
-                setProgressStep((frame.data as { step: ProgressStep }).step);
+              case "progress": {
+                const progress = frame.data as { step: ProgressStep; radiusM?: number };
+                setProgressStep(progress.step, progress.radiusM);
                 break;
+              }
               case "base_route":
                 lastBaseRoute = frame.data as WireBaseRoute;
                 setBaseRoute(lastBaseRoute);

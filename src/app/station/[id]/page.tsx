@@ -9,7 +9,9 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle, Droplets, Lightbulb, PhoneCall, Store, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TierBadge } from "@/components/result/tier-badge";
 import { RouteMap } from "@/components/route-map";
 import { useSearchStore } from "@/store/search-store";
@@ -155,8 +157,11 @@ export function StationDetailView({ id }: { id: string }) {
         destination={destination}
       />
 
-      <section className="flex flex-col gap-1 rounded-lg border border-border p-3">
-        <h2 className="text-sm font-semibold">💡 추천 이유</h2>
+      <section className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <Lightbulb className="size-4 text-primary" aria-hidden />
+          추천 이유
+        </h2>
         <p className="text-sm">{candidate.reason}</p>
         <ul className="mt-1 flex flex-col gap-0.5 text-sm text-muted-foreground">
           <li>가격 — 이 경로 {result.candidates.length}곳 중 {priceRankAmongAll}번째로 저렴</li>
@@ -168,38 +173,57 @@ export function StationDetailView({ id }: { id: string }) {
         </ul>
       </section>
 
-      <section className="rounded-lg border border-border p-3">
+      <section className="rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]">
         <h2 className="mb-1 text-sm font-semibold">가격</h2>
-        <p className="text-base font-semibold">{candidate.price.toLocaleString()}원/L</p>
+        <p className="text-xl font-bold tracking-tight">{candidate.price.toLocaleString()}원/L</p>
         <p className="text-sm text-muted-foreground">
           {vehicle.refuelAmount}L 주유 시 예상 {candidate.estimatedCost.toLocaleString()}원
         </p>
       </section>
 
-      <section className="flex flex-col gap-1 rounded-lg border border-border p-3 text-sm">
-        <div className="flex gap-2">
-          {candidate.facilities.carWash && <span>🚿 세차</span>}
-          {candidate.facilities.maintenance && <span>🔧 경정비</span>}
-          {candidate.facilities.cvs && <span>🏪 편의점</span>}
+      <section className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3.5 text-sm shadow-[var(--shadow-sm)]">
+        <div className="flex gap-3 text-muted-foreground">
+          {candidate.facilities.carWash && (
+            <span className="flex items-center gap-1">
+              <Droplets className="size-3.5" aria-hidden />
+              세차
+            </span>
+          )}
+          {candidate.facilities.maintenance && (
+            <span className="flex items-center gap-1">
+              <Wrench className="size-3.5" aria-hidden />
+              경정비
+            </span>
+          )}
+          {candidate.facilities.cvs && (
+            <span className="flex items-center gap-1">
+              <Store className="size-3.5" aria-hidden />
+              편의점
+            </span>
+          )}
         </div>
         <p className="text-muted-foreground">{candidate.brand}</p>
         <p className="text-muted-foreground">{candidate.address}</p>
         {candidate.tel && (
-          <a href={`tel:${candidate.tel}`} className="text-primary underline">
+          <a href={`tel:${candidate.tel}`} className="flex items-center gap-1 text-primary underline">
+            <PhoneCall className="size-3.5" aria-hidden />
             {candidate.tel} — 전화걸기
           </a>
         )}
       </section>
 
-      <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-        ⚠️ 가격은 실제와 다를 수 있습니다.
-        {candidate.tier === "T3" && " 먼 거리를 우회하므로 전화 확인을 권합니다."}
-        {isStale && ` 가격 정보가 ${PRICE_STALE_HOURS}시간 이상 전 기준입니다.`}
-      </p>
+      <Alert variant="warning">
+        <AlertTriangle aria-hidden />
+        <AlertDescription className="text-xs text-warning-foreground">
+          가격은 실제와 다를 수 있습니다.
+          {candidate.tier === "T3" && " 먼 거리를 우회하므로 전화 확인을 권합니다."}
+          {isStale && ` 가격 정보가 ${PRICE_STALE_HOURS}시간 이상 전 기준입니다.`}
+        </AlertDescription>
+      </Alert>
 
       <div className="flex flex-col gap-2">
         {NAVI_APPS.map(({ app, label, appName }) => (
-          <Button key={app} variant="outline" onClick={() => handleNaviClick(app, appName)}>
+          <Button key={app} variant="outline" size="lg" onClick={() => handleNaviClick(app, appName)}>
             {label}
           </Button>
         ))}
