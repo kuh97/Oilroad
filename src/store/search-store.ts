@@ -62,6 +62,8 @@ interface SearchState {
   /** 실제로 거쳐간 단계만 누적 — EXPAND는 발동 안 하면 건너뛰므로, 순서상 지나간 것으로
    * 잘못 표시하지 않으려면 인덱스 비교가 아니라 이 집합으로 판정해야 한다. */
   progressStepsSeen: ProgressStep[];
+  /** EXPAND 단계에서 서버가 실제로 넓힌 반경(m) — 로딩 문구에 실제 값을 보여주는 용도 */
+  expandRadiusM: number | null;
   /** STEP 1 직후 도착 — result 전에 헤더·지도를 먼저 그리는 용도 (§6.2) */
   baseRoute: WireBaseRoute | null;
   /** STEP 9 직후 추정치 — result 도착 전 카드 프리뷰용. 전부 detour.precise===false (§6.2) */
@@ -82,7 +84,7 @@ interface SearchState {
   setMode: (mode: Mode) => void;
 
   startSearch: () => void;
-  setProgressStep: (step: ProgressStep) => void;
+  setProgressStep: (step: ProgressStep, radiusM?: number) => void;
   setBaseRoute: (baseRoute: WireBaseRoute) => void;
   setPartial: (partial: WirePartial) => void;
   pushWarning: (warning: WireWarning) => void;
@@ -91,6 +93,7 @@ interface SearchState {
 
   addRecentSearch: (entry: Omit<RecentSearch, "searchedAt">) => void;
   reset: () => void;
+  clearRoute: () => void;
 }
 
 /** localStorage가 막혀 있어도(프라이빗 모드) 조용히 메모리로 폴백 — PRODUCT.md §10.2 */
@@ -137,6 +140,7 @@ export const useSearchStore = create<SearchState>()(
       isLoading: false,
       progressStep: null,
       progressStepsSeen: [],
+      expandRadiusM: null,
       baseRoute: null,
       partial: null,
       result: null,
@@ -157,16 +161,18 @@ export const useSearchStore = create<SearchState>()(
           isLoading: true,
           progressStep: "ROUTE",
           progressStepsSeen: ["ROUTE"],
+          expandRadiusM: null,
           baseRoute: null,
           partial: null,
           result: null,
           streamWarnings: [],
           error: null,
         }),
-      setProgressStep: (step) =>
+      setProgressStep: (step, radiusM) =>
         set((s) => ({
           progressStep: step,
           progressStepsSeen: s.progressStepsSeen.includes(step) ? s.progressStepsSeen : [...s.progressStepsSeen, step],
+          expandRadiusM: radiusM ?? s.expandRadiusM,
         })),
       setBaseRoute: (baseRoute) => set({ baseRoute }),
       setPartial: (partial) => set({ partial }),
@@ -193,6 +199,9 @@ export const useSearchStore = create<SearchState>()(
           streamWarnings: [],
           error: null,
         }),
+
+      // 결과 화면에서 홈으로 돌아갈 때 — 연료·필터는 유지, 출발지/목적지만 비운다.
+      clearRoute: () => set({ origin: null, destination: null }),
     }),
     {
       name: "oilroad-search-store",

@@ -68,7 +68,31 @@ export const KakaoLocalSearchResponseSchema = z.object({
   }),
 });
 
+// ─── 좌표 → 주소 (역지오코딩) ─────────────────────────────────────────────────
+
+export const KakaoAddressSchema = z
+  .object({
+    address_name: z.string(),
+  })
+  .nullable();
+
+export const KakaoRoadAddressSchema = z
+  .object({
+    address_name: z.string(),
+  })
+  .nullable();
+
+export const KakaoCoord2AddressDocumentSchema = z.object({
+  address: KakaoAddressSchema,
+  road_address: KakaoRoadAddressSchema,
+});
+
+export const KakaoCoord2AddressResponseSchema = z.object({
+  documents: z.array(KakaoCoord2AddressDocumentSchema),
+});
+
 export type KakaoRoutePoint = z.infer<typeof KakaoRoutePointSchema>;
 export type KakaoRoute = z.infer<typeof KakaoRouteSchema>;
 export type KakaoDirectionsResponse = z.infer<typeof KakaoDirectionsResponseSchema>;
 export type KakaoPlaceDocument = z.infer<typeof KakaoPlaceDocumentSchema>;
+export type KakaoCoord2AddressDocument = z.infer<typeof KakaoCoord2AddressDocumentSchema>;

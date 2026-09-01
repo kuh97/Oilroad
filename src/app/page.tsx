@@ -6,9 +6,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlaceAutocompleteInput } from "@/components/place-autocomplete";
 import { FuelSelect } from "@/components/fuel-select";
+import { HomeMap, type HomeMapField } from "@/components/home-map";
 import { useSearchStore } from "@/store/search-store";
 import { wgs84 } from "@/domain/types";
 import { wgs84ToProjected, distanceM } from "@/domain/geo";
@@ -29,8 +31,7 @@ export default function HomePage() {
   const setDestination = useSearchStore((s) => s.setDestination);
   const setFuel = useSearchStore((s) => s.setFuel);
 
-  const [isLocating, setIsLocating] = useState(false);
-  const [geoUnavailable, setGeoUnavailable] = useState(false);
+  const [activeField, setActiveField] = useState<HomeMapField>("origin");
 
   const tooClose = useMemo(
     () => (origin && destination ? gapMeters(origin, destination) < MIN_OD_GAP : false),
@@ -38,23 +39,14 @@ export default function HomePage() {
   );
   const canSearch = origin != null && destination != null && !tooClose;
 
-  function useCurrentLocation() {
-    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      setGeoUnavailable(true); // 조용히 무시 — 에러 모달 없이 텍스트 입력 유도 (§5.1)
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude, name: "현재 위치" });
-        setIsLocating(false);
-      },
-      () => {
-        setGeoUnavailable(true);
-        setIsLocating(false);
-      },
-      { timeout: 5_000 },
-    );
+  function swapOriginDestination() {
+    setOrigin(destination);
+    setDestination(origin);
+  }
+
+  function handleMapPick(field: HomeMapField, point: WirePoint) {
+    if (field === "origin") setOrigin(point);
+    else setDestination(point);
   }
 
   function handleSearch() {
@@ -76,30 +68,34 @@ export default function HomePage() {
         출발지부터 목적지까지의 경로를 고려해 가장 합리적인 주유소를 찾아드립니다.
       </p>
 
+      <HomeMap origin={origin} destination={destination} activeField={activeField} onPick={handleMapPick} />
+
       <div className="flex flex-col gap-3">
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <PlaceAutocompleteInput label="출발지" placeholder="출발지를 입력하세요" value={origin} onChange={setOrigin} />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isLocating}
-            onClick={useCurrentLocation}
-          >
-            현재 위치
-          </Button>
-        </div>
-        {geoUnavailable && (
-          <p className="text-xs text-muted-foreground">위치 정보를 가져올 수 없어요. 출발지를 직접 입력해주세요.</p>
-        )}
+        <PlaceAutocompleteInput
+          label="출발지"
+          placeholder="출발지를 입력하세요"
+          value={origin}
+          onChange={setOrigin}
+          onFocus={() => setActiveField("origin")}
+        />
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="self-center"
+          aria-label="출발지와 목적지 바꾸기"
+          onClick={swapOriginDestination}
+        >
+          <ArrowUpDown className="size-4" />
+        </Button>
 
         <PlaceAutocompleteInput
           label="목적지"
           placeholder="목적지를 입력하세요"
           value={destination}
           onChange={setDestination}
+          onFocus={() => setActiveField("destination")}
         />
 
         {tooClose && (

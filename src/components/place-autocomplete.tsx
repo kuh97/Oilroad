@@ -14,9 +14,10 @@ export interface PlaceAutocompleteInputProps {
   placeholder: string;
   value: WirePoint | null;
   onChange: (point: WirePoint | null) => void;
+  onFocus?: () => void;
 }
 
-export function PlaceAutocompleteInput({ label, placeholder, value, onChange }: PlaceAutocompleteInputProps) {
+export function PlaceAutocompleteInput({ label, placeholder, value, onChange, onFocus }: PlaceAutocompleteInputProps) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [isOpen, setIsOpen] = useState(false);
   const { places, error, retry } = usePlacesSearch(isOpen ? query : "");
@@ -43,7 +44,10 @@ export function PlaceAutocompleteInput({ label, placeholder, value, onChange }: 
           setIsOpen(true);
           if (value) onChange(null); // 텍스트를 다시 편집하면 확정된 좌표는 무효화
         }}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => {
+          setIsOpen(true);
+          onFocus?.();
+        }}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)} // 클릭 이벤트가 먼저 처리되도록 지연
       />
       {isOpen && (places.length > 0 || error) && (

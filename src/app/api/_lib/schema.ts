@@ -77,3 +77,8 @@ export type NearbyQuery = z.infer<typeof NearbyQuerySchema>;
 export const PlaceSearchQuerySchema = z.object({
   q: z.string(),
 });
+
+export const ReverseGeocodeQuerySchema = z.object({
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
+});

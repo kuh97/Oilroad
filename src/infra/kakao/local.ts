@@ -4,8 +4,8 @@
  */
 
 import { env } from "@/infra/env";
-import { KakaoLocalSearchResponseSchema } from "./schema";
-import { mapPlaceDocument } from "./mapper";
+import { KakaoLocalSearchResponseSchema, KakaoCoord2AddressResponseSchema } from "./schema";
+import { mapPlaceDocument, mapCoord2AddressDocument } from "./mapper";
 import { fetchWithRetry } from "./http";
 import type { PlaceResult, WGS84Point } from "@/domain/types";
 
@@ -47,4 +47,41 @@ export async function fetchPlaces(opts: FetchPlacesOptions): Promise<PlaceResult
   }
 
   return parsed.data.documents.map(mapPlaceDocument);
+}
+
+export interface FetchAddressOptions {
+  point: WGS84Point;
+  restApiKey?: string;
+  retries?: number; // 기본 1
+}
+
+/** 좌표 → 주소 (역지오코딩). 홈 화면 지도 탭·드래그·"현재 위치" 버튼에서 쓴다. */
+export async function fetchAddress(opts: FetchAddressOptions): Promise<PlaceResult> {
+  const restApiKey = opts.restApiKey ?? env.KAKAO_REST_API_KEY;
+  const retries = opts.retries ?? 1;
+
+  const params = new URLSearchParams({
+    x: String(opts.point.lng),
+    y: String(opts.point.lat),
+  });
+
+  const url = `${env.KAKAO_LOCAL_BASE_URL}/v2/local/geo/coord2address.json?${params}`;
+  const res = await fetchWithRetry(
+    url,
+    { Authorization: `KakaoAK ${restApiKey}` },
+    TIMEOUT_MS,
+    retries,
+  );
+
+  const json = await res.json();
+  const parsed = KakaoCoord2AddressResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(`카카오 역지오코딩 응답 파싱 실패: ${parsed.error.message}`);
+  }
+  const doc = parsed.data.documents[0];
+  if (!doc) {
+    throw new Error("좌표에 해당하는 주소를 찾을 수 없습니다.");
+  }
+
+  return mapCoord2AddressDocument(doc, opts.point);
 }

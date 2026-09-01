@@ -29,6 +29,8 @@ const FACILITY_LABEL: Record<Facility, string> = {
 };
 const FACILITIES: Facility[] = ["CAR_WASH", "MAINTENANCE", "CVS"];
 
+const EMPTY_FILTERS: WireFilters = { facilities: [], brands: [], kpetroOnly: false };
+
 /** 오피넷 POLL_DIV_CD ↔ 표시명 — PRODUCT.md §5.2. RTE·RTX는 "알뜰" 하나로 묶는다. */
 const BRAND_GROUPS: { label: string; codes: string[] }[] = [
   { label: "SK에너지", codes: ["SKE"] },
@@ -59,8 +61,15 @@ export function FilterSheet({
     >
       <DrawerTrigger render={<Button variant="outline" size="sm" />}>필터 ⚙</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader>
+        <DrawerHeader className="flex flex-row items-center justify-between">
           <DrawerTitle>필터</DrawerTitle>
+          <button
+            type="button"
+            className="text-sm text-muted-foreground underline"
+            onClick={() => setDraft(EMPTY_FILTERS)}
+          >
+            초기화
+          </button>
         </DrawerHeader>
 
         <div className="flex flex-col gap-4 px-4">
