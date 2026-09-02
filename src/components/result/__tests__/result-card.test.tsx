@@ -32,12 +32,12 @@ function candidate(overrides: Partial<WireCandidate> = {}): WireCandidate {
 }
 
 describe("ResultCard", () => {
-  it("T3 배지·정밀 우회 정보·이득 문구를 보여준다", () => {
-    render(<ResultCard rank={1} candidate={candidate()} hasReferencePrice now={NOW} />);
+  it("T3 배지·정밀 우회 정보·리터당 이득 문구를 보여준다", () => {
+    render(<ResultCard rank={1} candidate={candidate()} referencePrice={1210} now={NOW} />);
     expect(screen.getByText("우회")).toBeTruthy();
     expect(screen.getByText(/\+18분/)).toBeTruthy();
     expect(screen.getByText(/\+12\.4km 우회/)).toBeTruthy();
-    expect(screen.getByText(/3,252원 이득/)).toBeTruthy();
+    expect(screen.getByText(/평균보다 리터당 108원 쌈/)).toBeTruthy();
   });
 
   it("미계산(precise:false) 후보는 '약 N km ▸'로 표시하고 분·우회 문구를 쓰지 않는다", () => {
@@ -45,7 +45,7 @@ describe("ResultCard", () => {
       <ResultCard
         rank={3}
         candidate={candidate({ tier: "T2", detour: { precise: false, distanceM: 0, durationS: 0 }, perpDistanceM: 2100 })}
-        hasReferencePrice
+        referencePrice={1210}
         now={NOW}
       />,
     );
@@ -53,25 +53,30 @@ describe("ResultCard", () => {
     expect(screen.queryByText(/우회$/)).toBeNull();
   });
 
+  it("평균가보다 비싼 주유소는 리터당 비쌈 문구를 보여준다", () => {
+    render(<ResultCard rank={1} candidate={candidate({ price: 1300 })} referencePrice={1210} now={NOW} />);
+    expect(screen.getByText(/평균보다 리터당 90원 비쌈/)).toBeTruthy();
+  });
+
   it("referencePrice가 없으면(A14) 이득/비쌈 문구를 아예 표시하지 않는다", () => {
-    render(<ResultCard rank={1} candidate={candidate()} hasReferencePrice={false} now={NOW} />);
-    expect(screen.queryByText(/이득/)).toBeNull();
+    render(<ResultCard rank={1} candidate={candidate()} referencePrice={null} now={NOW} />);
+    expect(screen.queryByText(/쌈/)).toBeNull();
     expect(screen.queryByText(/비쌈/)).toBeNull();
   });
 
   it("PRICE_STALE_HOURS를 초과하면 '오래된 정보' 배지를 붙인다", () => {
     const staleTime = new Date(NOW.getTime() - (PRICE_STALE_HOURS + 1) * 60 * 60 * 1000);
-    render(<ResultCard rank={1} candidate={candidate({ priceUpdatedAt: staleTime.toISOString() })} hasReferencePrice now={NOW} />);
+    render(<ResultCard rank={1} candidate={candidate({ priceUpdatedAt: staleTime.toISOString() })} referencePrice={1210} now={NOW} />);
     expect(screen.getByText(/오래된 정보/)).toBeTruthy();
   });
 
   it("PRICE_STALE_HOURS 이내면 '오래된 정보' 배지가 없다", () => {
-    render(<ResultCard rank={1} candidate={candidate()} hasReferencePrice now={NOW} />);
+    render(<ResultCard rank={1} candidate={candidate()} referencePrice={1210} now={NOW} />);
     expect(screen.queryByText(/오래된 정보/)).toBeNull();
   });
 
   it("활성화된 시설만 배지로 보여준다", () => {
-    render(<ResultCard rank={1} candidate={candidate()} hasReferencePrice now={NOW} />);
+    render(<ResultCard rank={1} candidate={candidate()} referencePrice={1210} now={NOW} />);
     expect(screen.getByText(/세차/)).toBeTruthy();
     expect(screen.getByText(/편의점/)).toBeTruthy();
     expect(screen.queryByText(/경정비/)).toBeNull();

@@ -30,17 +30,20 @@ function formatPriceTime(iso: string | null, now: Date): string {
 export function ResultCard({
   rank,
   candidate,
-  hasReferencePrice,
+  referencePrice,
   now,
 }: {
   rank: number;
   candidate: WireCandidate;
-  hasReferencePrice: boolean;
+  referencePrice: number | null;
   now: Date;
 }) {
   const priceTimeText = formatPriceTime(candidate.priceUpdatedAt, now);
   const isStale = candidate.priceUpdatedAt != null && isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
   const activeFacilities = FACILITY_ICON.filter((f) => candidate.facilities[f.key]);
+  // 카드에는 순이득(우회 손해까지 반영한 원화 총액) 대신, 평균가 대비 리터당 가격차만
+  // 간단히 보여준다 — 정렬·T3 게이트 등 나머지 로직은 여전히 netSaving 기준.
+  const perLiterDiff = referencePrice != null ? referencePrice - candidate.price : null;
 
   return (
     <Link
@@ -67,15 +70,15 @@ export function ResultCard({
         )}
       </p>
 
-      {hasReferencePrice && (
+      {perLiterDiff != null && (
         <p className="mt-1 flex items-center gap-1 text-sm">
-          {candidate.netSaving > 0 ? (
+          {perLiterDiff > 0 ? (
             <span className="flex items-center gap-1 font-medium text-success-foreground">
               <PiggyBank className="size-3.5" aria-hidden />
-              {candidate.netSaving.toLocaleString()}원 이득
+              평균보다 리터당 {perLiterDiff.toLocaleString()}원 쌈
             </span>
           ) : (
-            <span className="text-muted-foreground">지역 평균보다 {Math.abs(candidate.netSaving).toLocaleString()}원 비쌈</span>
+            <span className="text-muted-foreground">평균보다 리터당 {Math.abs(perLiterDiff).toLocaleString()}원 비쌈</span>
           )}
         </p>
       )}

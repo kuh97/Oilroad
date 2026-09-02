@@ -4,7 +4,7 @@
  * 결과 목록 (F3·F4·F7) — PRODUCT.md §5.3, ARCHITECTURE.md §10 Phase 9.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,6 @@ export default function ResultPage() {
   const error = useSearchStore((s) => s.error);
 
   const { search } = useSearchStream();
-  const searchKeyRef = useRef<string | null>(null);
 
   // progressStep/expandRadiusM은 결과 도착 시 store가 null로 비운다(setResult) — 그런데
   // 완료 직후 잠깐(아래 settling) 마지막 단계가 채워진 모습을 보여줘야 하므로, 비워지기
@@ -98,11 +97,15 @@ export default function ResultPage() {
 
   // 출발지·목적지·연료·필터가 바뀌면 다시 검색한다. vehicle·mode는 클라이언트 재계산만
   // 하므로 의도적으로 의존성에서 뺐다(§10 Phase 9 완료 기준 — API 재호출 0회).
+  //
+  // "마지막으로 검색한 조건"은 컴포넌트 로컬(useRef)이 아니라 스토어에 둔다 — 상세보기
+  // 갔다가 뒤로가기하면 이 페이지 컴포넌트가 리마운트되어 로컬 ref는 초기화되지만,
+  // 스토어의 result·lastSearchKey는 그대로 남아있으므로 같은 조건이면 재검색을 건너뛴다.
   useEffect(() => {
     if (!origin || !destination) return;
     const key = JSON.stringify({ origin, destination, fuel, filters });
-    if (searchKeyRef.current === key) return;
-    searchKeyRef.current = key;
+    if (useSearchStore.getState().lastSearchKey === key) return;
+    useSearchStore.getState().setLastSearchKey(key);
     runSearch({ origin, destination });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, destination, fuel, filters]);
@@ -141,7 +144,15 @@ export default function ResultPage() {
           >
             홈으로
           </Button>
-          <Button onClick={() => { searchKeyRef.current = null; runSearch({ origin, destination }); }}>다시 시도</Button>
+          <Button
+            onClick={() => {
+              const key = JSON.stringify({ origin, destination, fuel, filters });
+              useSearchStore.getState().setLastSearchKey(key);
+              runSearch({ origin, destination });
+            }}
+          >
+            다시 시도
+          </Button>
         </div>
       </main>
     );
@@ -211,7 +222,7 @@ export default function ResultPage() {
             <ul className="flex flex-col gap-2">
               {displayCandidates.map((c, i) => (
                 <li key={c.id}>
-                  <ResultCard rank={i + 1} candidate={c} hasReferencePrice={referencePrice != null} now={now} />
+                  <ResultCard rank={i + 1} candidate={c} referencePrice={referencePrice} now={now} />
                 </li>
               ))}
             </ul>

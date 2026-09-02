@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { fetchPlaces } from "@/infra/kakao/local";
+import { searchPlaces } from "@/services/place-service";
 import { PLACE_QUERY_MIN_LEN } from "@/domain/params";
 import { PlaceSearchQuerySchema } from "@/app/api/_lib/schema";
 import { parseSearchParams } from "@/app/api/_lib/validate";
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const places = await fetchPlaces({ query, size: MAX_RESULTS });
+    const places = await searchPlaces({ query, size: MAX_RESULTS });
     const wire: WirePlace[] = places
       .slice(0, MAX_RESULTS)
       .map((p) => ({ name: p.name, address: p.address, lat: p.location.lat, lng: p.location.lng }));
