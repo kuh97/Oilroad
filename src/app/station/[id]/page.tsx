@@ -7,7 +7,7 @@
  * 폴백(폴백 타이머·스토어 이동)은 Phase 10 범위라 여기서는 스킴 링크만 연결한다.
  */
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AlertTriangle, Droplets, Lightbulb, PhoneCall, Store, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,17 @@ const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
   { app: "NAVER", label: "네이버지도", appName: "oilroad" },
   { app: "TMAP", label: "티맵" },
 ];
+
+/** 값이 마운트 후로도 바뀌지 않으므로 실제 구독은 필요 없다 — 리렌더를 유발하지 않는 no-op. */
+function subscribeNever() {
+  return () => {};
+}
+function getIsMobileSnapshot(): boolean {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+function getIsMobileServerSnapshot(): boolean {
+  return false;
+}
 
 function reportNaviClick(event: NaviEvent) {
   // 직후에 window.location.assign으로 이동하므로 fetch는 종종 중단된다 —
@@ -59,6 +70,12 @@ export function StationDetailView({ id }: { id: string }) {
 
   const { fetchDetour } = useDetour();
   const [detour, setDetour] = useState<DetourResult | null>(null);
+  // 티맵은 웹 길찾기가 없어(domain/deeplink.ts buildWebFallbackUrl 참고) 모바일에서만
+  // 노출한다. useSyncExternalStore로 읽어야 SSR 스냅샷(false)과 클라 스냅샷이 갈려도
+  // 하이드레이션 경고 없이 마운트 직후 실제 값으로 갱신된다 — useEffect+setState는
+  // react-hooks/set-state-in-effect에 걸린다.
+  const isMobile = useSyncExternalStore(subscribeNever, getIsMobileSnapshot, getIsMobileServerSnapshot);
+  const visibleNaviApps = NAVI_APPS.filter(({ app }) => app !== "TMAP" || isMobile);
 
   const rawCandidate = result?.candidates.find((c) => c.id === id) ?? null;
   const candidate = rawCandidate
@@ -131,7 +148,6 @@ export function StationDetailView({ id }: { id: string }) {
     });
 
     // 앱 스킴을 처리할 핸들러가 없는 데스크톱에서는 PC 웹 지도로 폴백한다.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const webFallback = !isMobile ? buildWebFallbackUrl(deeplinkInput) : null;
     if (webFallback) {
       window.open(webFallback, "_blank", "noopener,noreferrer");
@@ -222,12 +238,14 @@ export function StationDetailView({ id }: { id: string }) {
       </Alert>
 
       <div className="flex flex-col gap-2">
-        {NAVI_APPS.map(({ app, label, appName }) => (
+        {visibleNaviApps.map(({ app, label, appName }) => (
           <Button key={app} variant="outline" size="lg" onClick={() => handleNaviClick(app, appName)}>
             {label}
           </Button>
         ))}
-        <p className="text-xs text-muted-foreground">티맵은 주유소까지만 안내됩니다. 주유 후 최종 목적지를 다시 입력해주세요.</p>
+        {isMobile && (
+          <p className="text-xs text-muted-foreground">티맵은 주유소까지만 안내됩니다. 주유 후 최종 목적지를 다시 입력해주세요.</p>
+        )}
       </div>
     </main>
   );

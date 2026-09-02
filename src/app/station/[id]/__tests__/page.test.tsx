@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { StationDetailView } from "../page";
 import { useSearchStore } from "@/store/search-store";
@@ -73,6 +73,12 @@ function renderPage(id = "A1") {
   return render(<StationDetailView id={id} />);
 }
 
+const ORIGINAL_USER_AGENT = window.navigator.userAgent;
+function stubUserAgent(ua: string) {
+  Object.defineProperty(window.navigator, "userAgent", { value: ua, configurable: true });
+}
+afterEach(() => stubUserAgent(ORIGINAL_USER_AGENT));
+
 describe("StationDetailView — 검색 컨텍스트 없음", () => {
   it("스토어에 result가 없으면 안내 화면을 보여준다", () => {
     renderPage();
@@ -108,8 +114,18 @@ describe("StationDetailView — 정상 흐름 (AGENTS.md §6 불변식)", () => 
     expect(screen.queryByText(/전화 확인을 권합니다/)).toBeNull();
   });
 
-  it("티맵 안내 문구가 노출된다", () => {
+  it("데스크톱(비모바일 UA)에서는 티맵 버튼과 안내 문구를 보여주지 않는다 — 티맵은 웹 길찾기가 없음", async () => {
+    stubUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
     renderPage();
+    await screen.findByText("카카오맵"); // 마운트 이펙트가 반영될 때까지 대기
+    expect(screen.queryByText("티맵")).toBeNull();
+    expect(screen.queryByText(/티맵은 주유소까지만 안내됩니다/)).toBeNull();
+  });
+
+  it("모바일 UA에서는 티맵 버튼과 안내 문구를 보여준다", async () => {
+    stubUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15");
+    renderPage();
+    expect(await screen.findByText("티맵")).toBeTruthy();
     expect(screen.getByText(/티맵은 주유소까지만 안내됩니다/)).toBeTruthy();
   });
 

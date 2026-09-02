@@ -346,8 +346,8 @@ export async function search(
     onProgress?.({ type: "progress", step: "EXPAND", radiusM: T3_MAX });
 
     const offsetPoints = [
-      ...normalOffsets(projectedPolyline, OFFSET),
-      ...normalOffsets(projectedPolyline, -OFFSET),
+      ...normalOffsets(samples, OFFSET),
+      ...normalOffsets(samples, -OFFSET),
     ];
     const expanded = await collectStations({
       points: offsetPoints,

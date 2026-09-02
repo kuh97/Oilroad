@@ -71,6 +71,10 @@ interface SearchState {
   result: WireSearchResult | null;
   streamWarnings: WireWarning[]; // 스트림 도중 받은 warning 누적 (result 전 표시용)
   error: { code: string; message: string } | null;
+  /** 마지막으로 검색을 시작한 origin/destination/fuel/filters 조합의 키 — result 화면이
+   * 상세보기→뒤로가기로 리마운트돼도(로컬 ref는 초기화됨) 같은 조건이면 재검색하지
+   * 않도록, 컴포넌트 수명을 넘어 살아있는 스토어에 둔다. */
+  lastSearchKey: string | null;
 
   // ─── 최근 검색 (persist) ───────────────────────────────────────────────
   recentSearches: RecentSearch[];
@@ -90,6 +94,7 @@ interface SearchState {
   pushWarning: (warning: WireWarning) => void;
   setResult: (result: WireSearchResult) => void;
   setError: (error: { code: string; message: string }) => void;
+  setLastSearchKey: (key: string | null) => void;
 
   addRecentSearch: (entry: Omit<RecentSearch, "searchedAt">) => void;
   reset: () => void;
@@ -146,6 +151,7 @@ export const useSearchStore = create<SearchState>()(
       result: null,
       streamWarnings: [],
       error: null,
+      lastSearchKey: null,
 
       recentSearches: [],
 
@@ -179,6 +185,7 @@ export const useSearchStore = create<SearchState>()(
       pushWarning: (warning) => set({ streamWarnings: [...get().streamWarnings, warning] }),
       setResult: (result) => set({ result, isLoading: false, progressStep: null }),
       setError: (error) => set({ error, isLoading: false, progressStep: null }),
+      setLastSearchKey: (key) => set({ lastSearchKey: key }),
 
       addRecentSearch: (entry) => {
         const next: RecentSearch = { ...entry, searchedAt: new Date().toISOString() };
@@ -198,6 +205,7 @@ export const useSearchStore = create<SearchState>()(
           result: null,
           streamWarnings: [],
           error: null,
+          lastSearchKey: null,
         }),
 
       // 결과 화면에서 홈으로 돌아갈 때 — 연료·필터는 유지, 출발지/목적지만 비운다.
