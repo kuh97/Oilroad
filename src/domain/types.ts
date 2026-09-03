@@ -49,6 +49,24 @@ export type RefPriceSource = "MEDIAN_T1T2" | "SIGUNGU_AVG";
 export type EnergyType = "OIL" | "LPG" | "BOTH";
 export type BrandCode = string;  // POLL_DIV_CD
 
+// 오피넷 POLL_DIV_CD ↔ 표시명 — PRODUCT.md §5.2 매핑표.
+const BRAND_NAME: Record<string, string> = {
+  SKE: "SK에너지",
+  GSC: "GS칼텍스",
+  HDO: "현대오일뱅크",
+  SOL: "S-OIL",
+  RTE: "자영알뜰",
+  RTX: "고속도로알뜰",
+  NHO: "농협알뜰",
+  ETC: "자가상표",
+  E1G: "E1",
+  SKG: "SK가스",
+};
+
+export function brandName(code: BrandCode): string {
+  return BRAND_NAME[code] ?? code;
+}
+
 export interface RefuelPoint {
   id: string;               // 오피넷 UNI_ID
   name: string;

@@ -66,7 +66,7 @@ export function ResultCard({
             +{durationSToMin(candidate.detour.durationS)}분 · +{distanceMToKm(candidate.detour.distanceM)}km 우회
           </>
         ) : (
-          <>경로에서 약 {distanceMToKm(candidate.perpDistanceM)}km ▸</>
+          <>경로에서 약 {distanceMToKm(candidate.perpDistanceM)}km 떨어져 있어요.</>
         )}
       </p>
 
@@ -75,8 +75,10 @@ export function ResultCard({
           {perLiterDiff > 0 ? (
             <span className="flex items-center gap-1 font-medium text-success-foreground">
               <PiggyBank className="size-3.5" aria-hidden />
-              평균보다 리터당 {perLiterDiff.toLocaleString()}원 쌈
+              평균보다 리터당 {perLiterDiff.toLocaleString()}원 저렴
             </span>
+          ) : perLiterDiff === 0 ? (
+            <span className="text-muted-foreground">평균가</span>
           ) : (
             <span className="text-muted-foreground">평균보다 리터당 {Math.abs(perLiterDiff).toLocaleString()}원 비쌈</span>
           )}

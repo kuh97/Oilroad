@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type React from "react";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -15,6 +15,10 @@ const pretendard = localFont({
 export const metadata: Metadata = {
   title: "오일픽",
   description: "출발지부터 목적지까지의 경로를 고려해 가장 합리적인 주유소를 찾아드립니다.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3182F6",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

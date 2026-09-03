@@ -233,7 +233,7 @@ export function HomeMap({ origin, destination, activeField, onPick }: HomeMapPro
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        지도를 탭하면 {activeField === "origin" ? "출발지" : "목적지"}가 설정돼요. 마커는 드래그로 조정할 수 있어요. ⌖로 내 위치를 보고, 파란 점을 탭하면 그 위치로 설정돼요.
+        지도를 탭하면 {activeField === "origin" ? "출발지" : "목적지"}가 설정돼요. 마커는 드래그로 조정할 수 있어요.
       </p>
     </div>
   );

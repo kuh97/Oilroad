@@ -328,7 +328,7 @@ describe("search — 확장 발동", () => {
     expect(result.expansion.skippedReason).toBe("DISABLED");
   });
 
-  it("확장 시점에 예산이 소진돼 있으면 QUOTA로 건너뛰고 경고를 남긴다", async () => {
+  it("확장 시점에 예산이 소진돼 있으면 QUOTA로 건너뛴다 — 확장 고지 배너가 이미 안내하므로 warnings에는 중복해서 넣지 않는다", async () => {
     collectStationsMock.mockResolvedValue({
       stations: [{ station: station({ id: "A1" }), price: 1700 }],
       warnings: [],
@@ -341,7 +341,7 @@ describe("search — 확장 발동", () => {
 
     expect(collectStationsMock).toHaveBeenCalledTimes(1);
     expect(result.expansion.skippedReason).toBe("QUOTA");
-    expect(result.warnings).toContainEqual(expect.objectContaining({ code: "QUOTA_EXCEEDED" }));
+    expect(result.warnings.some((w) => w.code === "QUOTA_EXCEEDED")).toBe(false);
   });
 });
 

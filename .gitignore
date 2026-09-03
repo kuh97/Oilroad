@@ -36,3 +36,6 @@ coverage/
 
 # ── pnpm 워크스페이스 잠금파일 (scripts/ 자체 관리) ─
 scripts/node_modules/
+
+# ── 브랜딩 작업 스크래치 (실제 자산은 public/brand·src/app/icon.svg 등에 있음) ─
+.branding-work/

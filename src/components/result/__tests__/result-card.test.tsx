@@ -37,7 +37,7 @@ describe("ResultCard", () => {
     expect(screen.getByText("우회")).toBeTruthy();
     expect(screen.getByText(/\+18분/)).toBeTruthy();
     expect(screen.getByText(/\+12\.4km 우회/)).toBeTruthy();
-    expect(screen.getByText(/평균보다 리터당 108원 쌈/)).toBeTruthy();
+    expect(screen.getByText(/평균보다 리터당 108원 저렴/)).toBeTruthy();
   });
 
   it("미계산(precise:false) 후보는 '약 N km ▸'로 표시하고 분·우회 문구를 쓰지 않는다", () => {
@@ -49,7 +49,7 @@ describe("ResultCard", () => {
         now={NOW}
       />,
     );
-    expect(screen.getByText(/경로에서 약 2\.1km ▸/)).toBeTruthy();
+    expect(screen.getByText(/경로에서 약 2\.1km 떨어져 있어요\./)).toBeTruthy();
     expect(screen.queryByText(/우회$/)).toBeNull();
   });
 
@@ -58,10 +58,17 @@ describe("ResultCard", () => {
     expect(screen.getByText(/평균보다 리터당 90원 비쌈/)).toBeTruthy();
   });
 
-  it("referencePrice가 없으면(A14) 이득/비쌈 문구를 아예 표시하지 않는다", () => {
-    render(<ResultCard rank={1} candidate={candidate()} referencePrice={null} now={NOW} />);
-    expect(screen.queryByText(/쌈/)).toBeNull();
+  it("평균가와 정확히 같으면 '평균가' 문구를 보여준다(0원 비쌈처럼 표시하지 않는다)", () => {
+    render(<ResultCard rank={1} candidate={candidate({ price: 1210 })} referencePrice={1210} now={NOW} />);
+    expect(screen.getByText("평균가")).toBeTruthy();
     expect(screen.queryByText(/비쌈/)).toBeNull();
+  });
+
+  it("referencePrice가 없으면(A14) 이득/비쌈/평균가 문구를 아예 표시하지 않는다", () => {
+    render(<ResultCard rank={1} candidate={candidate()} referencePrice={null} now={NOW} />);
+    expect(screen.queryByText(/저렴/)).toBeNull();
+    expect(screen.queryByText(/비쌈/)).toBeNull();
+    expect(screen.queryByText("평균가")).toBeNull();
   });
 
   it("PRICE_STALE_HOURS를 초과하면 '오래된 정보' 배지를 붙인다", () => {

@@ -107,7 +107,7 @@ async function fetchOnePoint(
   if (!budgetResult.allowed) {
     return {
       items: [],
-      warning: { code: "QUOTA_EXCEEDED", message: "오피넷 일일 호출 예산을 초과해 일부 지점을 건너뛰었습니다." },
+      warning: { code: "QUOTA_EXCEEDED", message: "오늘 조회 한도를 넘어서 일부 구간의 주유소 정보를 가져오지 못했어요." },
     };
   }
 

@@ -127,7 +127,7 @@ export default function ResultPage() {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
         <p className="text-sm text-muted-foreground">검색 컨텍스트가 없습니다. 홈에서 먼저 검색해주세요.</p>
-        <Button render={<Link href="/" />} nativeButton={false}>홈으로</Button>
+        <Button render={<Link href="/home" />} nativeButton={false}>홈으로</Button>
       </main>
     );
   }
@@ -139,7 +139,7 @@ export default function ResultPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            render={<Link href="/" onClick={() => useSearchStore.getState().clearRoute()} />}
+            render={<Link href="/home" onClick={() => useSearchStore.getState().clearRoute()} />}
             nativeButton={false}
           >
             홈으로
@@ -164,7 +164,7 @@ export default function ResultPage() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 py-6">
       <header className="flex flex-col gap-1">
         <Link
-          href="/"
+          href="/home"
           className="text-sm text-muted-foreground"
           onClick={() => useSearchStore.getState().clearRoute()}
         >
@@ -186,7 +186,7 @@ export default function ResultPage() {
         />
       ) : (
         <>
-          {expansion && <ExpansionBanner expansion={expansion} />}
+          {expansion && <ExpansionBanner expansion={expansion} fuel={fuel} />}
           {(result?.warnings ?? streamWarnings).map((w, i) => (
             <WarningBanner key={`${w.code}-${i}`} warning={w} />
           ))}
@@ -210,7 +210,7 @@ export default function ResultPage() {
                   <p className="text-sm text-muted-foreground">이 경로에서는 조건에 맞는 주유소를 찾지 못했습니다.</p>
                   <Button
                     variant="outline"
-                    render={<Link href="/" onClick={() => useSearchStore.getState().clearRoute()} />}
+                    render={<Link href="/home" onClick={() => useSearchStore.getState().clearRoute()} />}
                     nativeButton={false}
                   >
                     다른 경로로 다시 찾기

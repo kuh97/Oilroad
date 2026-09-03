@@ -7,21 +7,36 @@
  * 폴백(폴백 타이머·스토어 이동)은 Phase 10 범위라 여기서는 스킴 링크만 연결한다.
  */
 
-import { use, useEffect, useState, useSyncExternalStore } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Droplets, Lightbulb, PhoneCall, Store, Wrench } from "lucide-react";
+import {
+  AlertTriangle,
+  Droplets,
+  Lightbulb,
+  PhoneCall,
+  Store,
+  Wrench,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TierBadge } from "@/components/result/tier-badge";
 import { RouteMap } from "@/components/route-map";
 import { useSearchStore } from "@/store/search-store";
 import { useDetour, type DetourResult } from "@/lib/api/useDetour";
-import { recomputeAndSort, recomputeCandidate } from "@/lib/recompute-candidates";
+import { useIsMobile } from "@/lib/use-is-mobile";
+import {
+  recomputeAndSort,
+  recomputeCandidate,
+} from "@/lib/recompute-candidates";
 import { distanceMToKm, durationSToMin } from "@/domain/pricing";
 import { isPriceStale } from "@/domain/cache-ttl";
 import { PRICE_STALE_HOURS } from "@/domain/params";
-import { wgs84 } from "@/domain/types";
-import { buildDeeplink, buildWebFallbackUrl, type NaviApp } from "@/domain/deeplink";
+import { brandName, wgs84 } from "@/domain/types";
+import {
+  buildDeeplink,
+  buildWebFallbackUrl,
+  type NaviApp,
+} from "@/domain/deeplink";
 import type { NaviEvent } from "@/app/api/_lib/schema";
 
 const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
@@ -29,17 +44,6 @@ const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
   { app: "NAVER", label: "네이버지도", appName: "oilpick" },
   { app: "TMAP", label: "티맵" },
 ];
-
-/** 값이 마운트 후로도 바뀌지 않으므로 실제 구독은 필요 없다 — 리렌더를 유발하지 않는 no-op. */
-function subscribeNever() {
-  return () => {};
-}
-function getIsMobileSnapshot(): boolean {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-function getIsMobileServerSnapshot(): boolean {
-  return false;
-}
 
 function reportNaviClick(event: NaviEvent) {
   // 직후에 window.location.assign으로 이동하므로 fetch는 종종 중단된다 —
@@ -55,7 +59,11 @@ function reportNaviClick(event: NaviEvent) {
   }
 }
 
-export default function StationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function StationDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   return <StationDetailView id={id} />;
 }
@@ -70,12 +78,11 @@ export function StationDetailView({ id }: { id: string }) {
 
   const { fetchDetour } = useDetour();
   const [detour, setDetour] = useState<DetourResult | null>(null);
-  // 티맵은 웹 길찾기가 없어(domain/deeplink.ts buildWebFallbackUrl 참고) 모바일에서만
-  // 노출한다. useSyncExternalStore로 읽어야 SSR 스냅샷(false)과 클라 스냅샷이 갈려도
-  // 하이드레이션 경고 없이 마운트 직후 실제 값으로 갱신된다 — useEffect+setState는
-  // react-hooks/set-state-in-effect에 걸린다.
-  const isMobile = useSyncExternalStore(subscribeNever, getIsMobileSnapshot, getIsMobileServerSnapshot);
-  const visibleNaviApps = NAVI_APPS.filter(({ app }) => app !== "TMAP" || isMobile);
+  // 티맵은 웹 길찾기가 없어(domain/deeplink.ts buildWebFallbackUrl 참고) 모바일에서만 노출한다.
+  const isMobile = useIsMobile();
+  const visibleNaviApps = NAVI_APPS.filter(
+    ({ app }) => app !== "TMAP" || isMobile,
+  );
 
   const rawCandidate = result?.candidates.find((c) => c.id === id) ?? null;
   const candidate = rawCandidate
@@ -110,8 +117,12 @@ export function StationDetailView({ id }: { id: string }) {
   if (!origin || !destination || !result || !candidate) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-        <p className="text-sm text-muted-foreground">검색 컨텍스트가 없습니다. 홈에서 먼저 검색해주세요.</p>
-        <Button render={<Link href="/" />} nativeButton={false}>홈으로</Button>
+        <p className="text-sm text-muted-foreground">
+          검색 컨텍스트가 없습니다. 홈에서 먼저 검색해주세요.
+        </p>
+        <Button render={<Link href="/home" />} nativeButton={false}>
+          홈으로
+        </Button>
       </main>
     );
   }
@@ -121,11 +132,21 @@ export function StationDetailView({ id }: { id: string }) {
   const netSavingValue = detour?.netSaving ?? candidate.netSaving;
   const precise = detour != null;
   const now = new Date();
-  const isStale = candidate.priceUpdatedAt != null && isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
+  const isStale =
+    candidate.priceUpdatedAt != null &&
+    isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
 
-  const rank = recomputeAndSort(result.candidates, vehicle, result.referencePrice, mode).findIndex((c) => c.id === id) + 1;
+  const rank =
+    recomputeAndSort(
+      result.candidates,
+      vehicle,
+      result.referencePrice,
+      mode,
+    ).findIndex((c) => c.id === id) + 1;
   const priceRankAmongAll =
-    [...result.candidates].sort((a, b) => a.price - b.price).findIndex((c) => c.id === id) + 1;
+    [...result.candidates]
+      .sort((a, b) => a.price - b.price)
+      .findIndex((c) => c.id === id) + 1;
 
   function handleNaviClick(app: NaviApp, appName?: string) {
     const deeplinkInput = {
@@ -179,21 +200,33 @@ export function StationDetailView({ id }: { id: string }) {
           추천 이유
         </h2>
         <p className="text-sm">{candidate.reason}</p>
-        <ul className="mt-1 flex flex-col gap-0.5 text-sm text-muted-foreground">
-          <li>가격 — 이 경로 {result.candidates.length}곳 중 {priceRankAmongAll}번째로 저렴</li>
-          <li>
-            우회 — {!precise && "약 "}
+        <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+          <dt className="text-muted-foreground">가격</dt>
+          <dd>
+            이 경로 {result.candidates.length}곳 중 {priceRankAmongAll}번째로 저렴
+          </dd>
+          <dt className="text-muted-foreground">우회</dt>
+          <dd>
+            {!precise && "약 "}
             {distanceMToKm(distanceM)}km / {durationSToMin(durationS)}분
-          </li>
-          <li>순이득 — {netSavingValue > 0 ? `+${netSavingValue.toLocaleString()}원` : `${netSavingValue.toLocaleString()}원`}</li>
-        </ul>
+          </dd>
+          <dt className="text-muted-foreground">순이득</dt>
+          <dd className={netSavingValue > 0 ? "font-medium text-success-foreground" : "text-muted-foreground"}>
+            {netSavingValue > 0
+              ? `+${netSavingValue.toLocaleString()}원`
+              : `${netSavingValue.toLocaleString()}원`}
+          </dd>
+        </dl>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-sm)]">
         <h2 className="mb-1 text-sm font-semibold">가격</h2>
-        <p className="text-xl font-bold tracking-tight">{candidate.price.toLocaleString()}원/L</p>
+        <p className="text-xl font-bold tracking-tight">
+          {candidate.price.toLocaleString()}원/L
+        </p>
         <p className="text-sm text-muted-foreground">
-          {vehicle.refuelAmount}L 주유 시 예상 {candidate.estimatedCost.toLocaleString()}원
+          {vehicle.refuelAmount}L 주유 시 예상{" "}
+          {candidate.estimatedCost.toLocaleString()}원
         </p>
       </section>
 
@@ -218,10 +251,13 @@ export function StationDetailView({ id }: { id: string }) {
             </span>
           )}
         </div>
-        <p className="text-muted-foreground">{candidate.brand}</p>
+        <p className="text-muted-foreground">{brandName(candidate.brand)}</p>
         <p className="text-muted-foreground">{candidate.address}</p>
         {candidate.tel && (
-          <a href={`tel:${candidate.tel}`} className="flex items-center gap-1 text-primary underline">
+          <a
+            href={`tel:${candidate.tel}`}
+            className="flex items-center gap-1 text-primary underline"
+          >
             <PhoneCall className="size-3.5" aria-hidden />
             {candidate.tel} — 전화걸기
           </a>
@@ -232,19 +268,29 @@ export function StationDetailView({ id }: { id: string }) {
         <AlertTriangle aria-hidden />
         <AlertDescription className="text-xs text-warning-foreground">
           가격은 실제와 다를 수 있습니다.
-          {candidate.tier === "T3" && " 먼 거리를 우회하므로 전화 확인을 권합니다."}
-          {isStale && ` 가격 정보가 ${PRICE_STALE_HOURS}시간 이상 전 기준입니다.`}
+          {candidate.tier === "T3" &&
+            " 먼 거리를 우회하므로 전화 확인을 권합니다."}
+          {isStale &&
+            ` 가격 정보가 ${PRICE_STALE_HOURS}시간 이상 전 기준입니다.`}
         </AlertDescription>
       </Alert>
 
       <div className="flex flex-col gap-2">
         {visibleNaviApps.map(({ app, label, appName }) => (
-          <Button key={app} variant="outline" size="lg" onClick={() => handleNaviClick(app, appName)}>
+          <Button
+            key={app}
+            variant="outline"
+            size="lg"
+            onClick={() => handleNaviClick(app, appName)}
+          >
             {label}
           </Button>
         ))}
         {isMobile && (
-          <p className="text-xs text-muted-foreground">티맵은 주유소까지만 안내됩니다. 주유 후 최종 목적지를 다시 입력해주세요.</p>
+          <p className="text-xs text-muted-foreground">
+            티맵은 주유소까지만 안내됩니다. 주유 후 최종 목적지를 다시
+            입력해주세요.
+          </p>
         )}
       </div>
     </main>
