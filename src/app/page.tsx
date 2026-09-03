@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { Navigation, PiggyBank, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/lib/use-is-mobile";
 
 const VALUE_PROPS = [
   { Icon: PiggyBank, text: "얼마나 이득인지 원 단위로 보여드려요" },
@@ -12,7 +11,6 @@ const VALUE_PROPS = [
 
 export default function LandingPage() {
   const router = useRouter();
-  const isMobile = useIsMobile();
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
@@ -58,7 +56,7 @@ export default function LandingPage() {
         <li className="flex items-center gap-2 text-sm text-muted-foreground">
           <Navigation className="size-4 shrink-0 text-primary" aria-hidden />
           카카오맵·네이버지도·티맵으로 바로 길안내
-          {!isMobile && <span className="text-muted-foreground/70">(티맵은 모바일에서만)</span>}
+          <span data-desktop-only className="text-muted-foreground/70">(티맵은 모바일에서만)</span>
         </li>
       </ul>
 
