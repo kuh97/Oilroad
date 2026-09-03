@@ -336,10 +336,9 @@ export async function search(
   } else if (!expansionEnabled) {
     skippedReason = "DISABLED";
   } else if (!(await isOpinetBudgetAvailable(redis, prefix, budgetLimit, now))) {
+    // 확장 고지 배너(expansion.skippedReason === "QUOTA")가 이미 이 상황을 안내하므로,
+    // 같은 내용을 warnings 배열로 또 밀어넣어 배너 두 개가 겹쳐 뜨지 않게 한다.
     skippedReason = "QUOTA";
-    const warning: Warning = { code: "QUOTA_EXCEEDED", message: "오피넷 일일 예산이 소진돼 확장 수집을 건너뛰었습니다." };
-    warnings.push(warning);
-    onProgress?.({ type: "warning", data: warning });
   } else {
     // STEP6 — 확장 수집
     expansionTriggered = true;

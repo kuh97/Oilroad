@@ -8,16 +8,19 @@
  */
 import { Info, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { WireExpansion } from "@/app/api/_lib/types";
+import { SEARCH_RADIUS } from "@/domain/params";
+import type { Fuel, WireExpansion } from "@/app/api/_lib/types";
 
-export function ExpansionBanner({ expansion }: { expansion: WireExpansion }) {
+export function ExpansionBanner({ expansion, fuel }: { expansion: WireExpansion; fuel: Fuel }) {
+  const stationWord = fuel === "LPG" ? "충전소" : "주유소";
+
   if (expansion.triggered) {
     const km = (expansion.finalRadiusM / 1000).toFixed(1).replace(/\.0$/, "");
     return (
       <Alert variant="info">
         <Info aria-hidden />
         <AlertDescription className="text-info-foreground">
-          경로 주변에서 조건에 맞는 충전소를 충분히 찾지 못해 {km}km까지 넓혀 찾았습니다.
+          경로 주변에서 조건에 맞는 {stationWord}를 충분히 찾지 못해 {km}km까지 넓혀 찾았어요.
         </AlertDescription>
       </Alert>
     );
@@ -28,7 +31,7 @@ export function ExpansionBanner({ expansion }: { expansion: WireExpansion }) {
       <Alert variant="warning">
         <AlertTriangle aria-hidden />
         <AlertDescription className="text-warning-foreground">
-          오늘의 호출 한도로 더 넓게 찾지 못했습니다. 기본 범위 결과입니다.
+          오늘 조회 한도에 걸려 더 넓게 찾지 못했어요. 경로 주변 {SEARCH_RADIUS / 1000}km 결과예요.
         </AlertDescription>
       </Alert>
     );
