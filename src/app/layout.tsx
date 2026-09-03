@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type React from "react";
 import localFont from "next/font/local";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // docs/DESIGN.md §3이 지정한 폰트는 재배포 권리가 없어 그대로 쓸 수 없다 —
@@ -37,7 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="beforeInteractive"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
