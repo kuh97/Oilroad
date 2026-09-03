@@ -13,7 +13,7 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "오일로드",
+  title: "오일픽",
   description: "출발지부터 목적지까지의 경로를 고려해 가장 합리적인 주유소를 찾아드립니다.",
 };
 

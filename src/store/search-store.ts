@@ -212,7 +212,7 @@ export const useSearchStore = create<SearchState>()(
       clearRoute: () => set({ origin: null, destination: null }),
     }),
     {
-      name: "oilroad-search-store",
+      name: "oilpick-search-store",
       storage: createJSONStorage(safeStorage),
       // origin/destination/result는 의도적으로 휘발성 — persist하지 않음
       partialize: (state) => ({
