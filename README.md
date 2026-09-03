@@ -1,4 +1,4 @@
-# 오일로드 (OilRoad)
+# 오일픽 (OilPick)
 
 **경로상의 최적의 주유소 길찾기**
 
@@ -17,7 +17,7 @@
 
 티맵·네이버지도·카카오내비·오일나우 모두 "경로 주변 주유소 검색"을 제공하지만, 전부 **반경 하드 필터**를 씁니다. 반경 밖 주유소는 존재 자체가 사용자에게 전달되지 않습니다.
 
-오일로드는 **반경으로 자르지 않고, 우회 비용과 이득을 비교해서 순위를 매깁니다.**
+오일픽은 **반경으로 자르지 않고, 우회 비용과 이득을 비교해서 순위를 매깁니다.**
 
 차이가 가장 크게 드러나는 사용자는 **LPG 차량 장거리 운전자**입니다. 자동차충전소는 주유소보다 훨씬 희소해서 "경로에 없음"이 자주 발생합니다.
 
@@ -67,7 +67,7 @@
 ## 프로젝트 구조
 
 ```
-oilroad/
+oilpick/
 ├── AGENTS.md          # AI Coding Agent 규칙 (필독)
 ├── README.md          # 이 파일
 ├── .env.example
@@ -103,8 +103,8 @@ oilroad/
 ### 설치
 
 ```bash
-git clone <repo-url> oilroad
-cd oilroad
+git clone <repo-url> oilpick
+cd oilpick
 pnpm install
 cp .env.example .env.local     # 아래 표를 참고해 값을 채웁니다
 ```

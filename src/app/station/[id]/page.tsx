@@ -26,7 +26,7 @@ import type { NaviEvent } from "@/app/api/_lib/schema";
 
 const NAVI_APPS: { app: NaviApp; label: string; appName?: string }[] = [
   { app: "KAKAO", label: "카카오맵" },
-  { app: "NAVER", label: "네이버지도", appName: "oilroad" },
+  { app: "NAVER", label: "네이버지도", appName: "oilpick" },
   { app: "TMAP", label: "티맵" },
 ];
 

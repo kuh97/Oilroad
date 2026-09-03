@@ -13,7 +13,7 @@ const BASE = {
   originName: "출발지",
   destinationName: "목적지",
   waypointName: "경유주유소",
-  appName: "com.example.oilroad",
+  appName: "com.example.oilpick",
 };
 
 describe("buildDeeplink — 카카오", () => {
@@ -49,7 +49,7 @@ describe("buildDeeplink — 네이버", () => {
     expect(url).toContain("slat=37.5");
     expect(url).toContain("dlat=35.1");
     expect(url).toContain("v1lat=36.3");
-    expect(url).toContain("appname=com.example.oilroad");
+    expect(url).toContain("appname=com.example.oilpick");
   });
 });
 

@@ -12,7 +12,7 @@
 ### 1. 스크립트 폴더 구조
 
 ```
-oilroad/              ← 프로젝트 루트
+oilpick/              ← 프로젝트 루트
   scripts/
     _shared.ts
     verify/
@@ -102,7 +102,7 @@ pnpm verify:uturn      -- --route=0 --yes
 `verify:price-time` 실행 후 자동으로 생성됩니다:
 
 ```
-oilroad/
+oilpick/
   tests/
     fixtures/
       opinet-radius.json   ← 반경검색 실제 응답

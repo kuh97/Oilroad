@@ -78,7 +78,7 @@ export default function HomePage() {
         <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <FuelIcon className="size-4" aria-hidden />
         </span>
-        <h1 className="text-xl font-bold tracking-tight">오일로드</h1>
+        <h1 className="text-xl font-bold tracking-tight">오일픽</h1>
       </div>
       <p className="text-sm text-muted-foreground">
         출발지부터 목적지까지의 경로를 고려해 가장 합리적인 주유소를 찾아드립니다.
