@@ -4,8 +4,12 @@
  */
 
 import { env } from "@/infra/env";
-import { KakaoLocalSearchResponseSchema, KakaoCoord2AddressResponseSchema } from "./schema";
-import { mapPlaceDocument, mapCoord2AddressDocument } from "./mapper";
+import {
+  KakaoLocalSearchResponseSchema,
+  KakaoCoord2AddressResponseSchema,
+  KakaoAddressSearchResponseSchema,
+} from "./schema";
+import { mapPlaceDocument, mapCoord2AddressDocument, mapAddressSearchDocument } from "./mapper";
 import { fetchWithRetry } from "./http";
 import type { PlaceResult, WGS84Point } from "@/domain/types";
 
@@ -84,4 +88,38 @@ export async function fetchAddress(opts: FetchAddressOptions): Promise<PlaceResu
   }
 
   return mapCoord2AddressDocument(doc, opts.point);
+}
+
+export interface GeocodeAddressOptions {
+  query: string;
+  restApiKey?: string;
+  retries?: number; // 기본 1
+}
+
+/**
+ * 주소 → 좌표 (정방향 지오코딩).
+ * docs/MIGRATION-DB.md §4 — 오피넷 유가 CSV 마스터 임포트 전용.
+ * 실측 정확도(2026-09-04자, 오피넷 실좌표 대비): 중앙값 오차 15m, p90 37m.
+ * 검색 실패 시 null — 호출부가 키워드검색으로 폴백하거나 좌표 없이 남깁니다.
+ */
+export async function geocodeAddress(opts: GeocodeAddressOptions): Promise<WGS84Point | null> {
+  const restApiKey = opts.restApiKey ?? env.KAKAO_REST_API_KEY;
+  const retries = opts.retries ?? 1;
+
+  const params = new URLSearchParams({ query: opts.query });
+  const url = `${env.KAKAO_LOCAL_BASE_URL}/v2/local/search/address.json?${params}`;
+  const res = await fetchWithRetry(
+    url,
+    { Authorization: `KakaoAK ${restApiKey}` },
+    TIMEOUT_MS,
+    retries,
+  );
+
+  const json = await res.json();
+  const parsed = KakaoAddressSearchResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(`카카오 주소검색 응답 파싱 실패: ${parsed.error.message}`);
+  }
+  const doc = parsed.data.documents[0];
+  return doc ? mapAddressSearchDocument(doc) : null;
 }

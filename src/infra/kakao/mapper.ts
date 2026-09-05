@@ -5,7 +5,12 @@
 
 import { wgs84 } from "@/domain/types";
 import type { BaseRoute, PlaceResult, WGS84Point } from "@/domain/types";
-import type { KakaoRoute, KakaoPlaceDocument, KakaoCoord2AddressDocument } from "./schema";
+import type {
+  KakaoRoute,
+  KakaoPlaceDocument,
+  KakaoCoord2AddressDocument,
+  KakaoAddressSearchDocument,
+} from "./schema";
 
 /**
  * sections[].roads[].vertexes(경도·위도 평탄화 배열)를 순서대로 이어붙여
@@ -60,4 +65,12 @@ export function mapCoord2AddressDocument(doc: KakaoCoord2AddressDocument, point:
     address,
     location: point,
   };
+}
+
+/**
+ * 카카오 주소검색(address.json) 결과 1건 → WGS84Point.
+ * docs/MIGRATION-DB.md §4 — 유가 CSV 마스터 임포트의 좌표 조달용(정방향 지오코딩).
+ */
+export function mapAddressSearchDocument(doc: KakaoAddressSearchDocument): WGS84Point {
+  return wgs84(Number(doc.y), Number(doc.x));
 }

@@ -95,8 +95,14 @@ describe("mapDetailItem — 상세정보 매핑", () => {
     expect(mapped.energyType).toBe("OIL");
   });
 
-  it("LPG_YN=Y → energyType=BOTH", () => {
+  it("LPG_YN=Y → energyType=LPG (전용, 겸업 아님)", () => {
     const fakeDetail = { ...detailItems[0], LPG_YN: "Y" as const };
+    const mapped = mapDetailItem(fakeDetail);
+    expect(mapped.energyType).toBe("LPG");
+  });
+
+  it("LPG_YN=C → energyType=BOTH (겸업)", () => {
+    const fakeDetail = { ...detailItems[0], LPG_YN: "C" as const };
     const mapped = mapDetailItem(fakeDetail);
     expect(mapped.energyType).toBe("BOTH");
   });

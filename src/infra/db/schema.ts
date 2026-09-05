@@ -11,15 +11,17 @@ import {
   doublePrecision,
   boolean,
   integer,
+  date,
   timestamp,
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
 
-// ─── refuel_point — 주유소 마스터 (§7.1) ───────────────────────────────────────
+// ─── refuel_point — 주유소 마스터 (§7.1, docs/MIGRATION-DB.md §5.1) ────────────
 //
 // 폴백 C 채택 — 표준데이터(행안부)는 UNI_ID·시설 컬럼이 없어 임포트하지 않습니다.
-// 이 테이블은 오피넷 상세 API 응답으로만 채워집니다 (source='OPINET').
+// 마스터는 오피넷 유가 CSV(source='OPINET_CSV')로 채우고, 시설 정보만 상세 API로
+// 백그라운드 백필합니다(source='OPINET' — Fallback C, 상세 API 신규 발견분).
 
 export const refuelPoint = pgTable(
   "refuel_point",
@@ -36,6 +38,8 @@ export const refuelPoint = pgTable(
     addressJibun: text("address_jibun"),
     tel: text("tel"),
     sigunCd: text("sigun_cd"),                     // 시군구 평균가 조인 키
+    isSelf: boolean("is_self"),                    // CSV 셀프여부. NULL=미상(상세 API로만 채워진 행)
+    coordSource: text("coord_source"),             // 'OPINET' | 'KAKAO_ADDR' | 'KAKAO_KEYWORD'
 
     hasCarWash: boolean("has_car_wash").notNull().default(false),
     hasMaintenance: boolean("has_maintenance").notNull().default(false),
@@ -47,13 +51,24 @@ export const refuelPoint = pgTable(
     lastPriceProd: text("last_price_prod"),        // B027 | D047 | K015
     priceTradedAt: timestamp("price_traded_at", { withTimezone: true }),
 
-    source: text("source").notNull(),              // 'STANDARD_DATA' | 'OPINET'
+    // CSV 유종별 스냅샷 — 최신 1일치만 덮어씀(이력 테이블 없음, MIGRATION-DB §11 결정 ③)
+    priceGasoline: integer("price_gasoline"),      // B027
+    priceDiesel: integer("price_diesel"),          // D047
+    priceLpg: integer("price_lpg"),                // K015
+    pricePremium: integer("price_premium"),        // B034 — 적재만, UI 미노출
+    priceKerosene: integer("price_kerosene"),      // C004 — 적재만, UI 미노출
+    pricedOn: date("priced_on"),                   // CSV 기준일자
+    lastSeenOn: date("last_seen_on"),               // 마지막으로 CSV에 등장한 날 (폐업 감지용)
+
+    source: text("source").notNull(),              // 'STANDARD_DATA' | 'OPINET' | 'OPINET_CSV'
     detailSyncedAt: timestamp("detail_synced_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_refuel_point_sigun").on(table.sigunCd),
     index("idx_refuel_point_energy").on(table.energyType),
+    index("idx_refuel_point_latlng").on(table.lat, table.lng),
+    index("idx_refuel_point_seen").on(table.lastSeenOn),
   ],
 );
 

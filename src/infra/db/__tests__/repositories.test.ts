@@ -5,6 +5,7 @@ import {
   upsertRefuelPointFromDetail,
   findRefuelPointsByIds,
   findRefuelPointRowById,
+  bulkUpsertFromCsv,
   toSigunguAvgPriceInserts,
   bulkUpsertSigunguAvgPrices,
   findSigunguAvgPrice,
@@ -87,9 +88,18 @@ describe("fromRefuelPointRow — 순수 변환", () => {
     hasMaintenance: false,
     hasCvs: true,
     isKpetro: false,
+    isSelf: null,
+    coordSource: null,
     lastPrice: 1847,
     lastPriceProd: "B027",
     priceTradedAt: null,
+    priceGasoline: null,
+    priceDiesel: null,
+    priceLpg: null,
+    pricePremium: null,
+    priceKerosene: null,
+    pricedOn: null,
+    lastSeenOn: null,
     source: "OPINET",
     detailSyncedAt: NOW,
     updatedAt: NOW,
@@ -259,9 +269,18 @@ describe("findRefuelPointRowById — DB 접근", () => {
       hasMaintenance: false,
       hasCvs: false,
       isKpetro: false,
+      isSelf: null,
+      coordSource: null,
       lastPrice: 1650,
       lastPriceProd: "B027",
       priceTradedAt: NOW,
+      priceGasoline: null,
+      priceDiesel: null,
+      priceLpg: null,
+      pricePremium: null,
+      priceKerosene: null,
+      pricedOn: null,
+      lastSeenOn: null,
       source: "OPINET",
       detailSyncedAt: null,
       updatedAt: NOW,
@@ -273,6 +292,76 @@ describe("findRefuelPointRowById — DB 접근", () => {
     const result = await findRefuelPointRowById("A0009916", { select } as unknown as Db);
     expect(result?.lastPrice).toBe(1650);
     expect(result?.priceTradedAt).toEqual(NOW);
+  });
+});
+
+describe("bulkUpsertFromCsv — DB 접근", () => {
+  it("빈 배열이면 DB를 호출하지 않고 0을 반환한다", async () => {
+    const insert = vi.fn();
+    const result = await bulkUpsertFromCsv([], { insert } as unknown as Db, NOW);
+    expect(result).toBe(0);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("행 수만큼 upsert를 시도하고 source='OPINET_CSV'로 넣는다", async () => {
+    const fake = fakeInsertDb();
+    const rows = [
+      {
+        id: "A0033584",
+        name: "테스트주유소",
+        brandCode: "HDO",
+        energyType: "OIL" as const,
+        lat: 37.5,
+        lng: 127.0,
+        coordSource: "KAKAO_ADDR",
+        addressRoad: "강원도 강릉시 사임당로 178",
+        sigunCd: "0301",
+        isSelf: true,
+        pricedOn: "2026-09-04",
+        lastSeenOn: "2026-09-04",
+        priceGasoline: 1809,
+        priceDiesel: 1789,
+        priceLpg: null,
+        pricePremium: 2230,
+        priceKerosene: null,
+      },
+    ];
+    const result = await bulkUpsertFromCsv(rows, fake as unknown as Db, NOW);
+    expect(result).toBe(1);
+    expect(fake.insert).toHaveBeenCalledTimes(1);
+    const insertedRows = fake.values.mock.calls[0][0] as Array<{ source: string }>;
+    expect(insertedRows[0].source).toBe("OPINET_CSV");
+  });
+
+  it("onConflictDoUpdate의 SET 절에 시설정보·detail 컬럼을 넣지 않는다 (컬럼 소유권 규칙)", async () => {
+    const fake = fakeInsertDb();
+    const rows = [
+      {
+        id: "A0033584",
+        name: "테스트주유소",
+        brandCode: "HDO",
+        energyType: "OIL" as const,
+        lat: 37.5,
+        lng: 127.0,
+        coordSource: "KAKAO_ADDR",
+        addressRoad: "강원도 강릉시 사임당로 178",
+        sigunCd: "0301",
+        isSelf: true,
+        pricedOn: "2026-09-04",
+        lastSeenOn: "2026-09-04",
+        priceGasoline: 1809,
+        priceDiesel: 1789,
+        priceLpg: null,
+        pricePremium: 2230,
+        priceKerosene: null,
+      },
+    ];
+    await bulkUpsertFromCsv(rows, fake as unknown as Db, NOW);
+    const [opts] = fake.onConflictDoUpdate.mock.calls[0];
+    const setKeys = Object.keys((opts as { set: Record<string, unknown> }).set);
+    for (const forbidden of ["hasCarWash", "hasMaintenance", "hasCvs", "isKpetro", "tel", "detailSyncedAt", "source"]) {
+      expect(setKeys).not.toContain(forbidden);
+    }
   });
 });
 

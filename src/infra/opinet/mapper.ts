@@ -60,8 +60,17 @@ export function mapRadiusItem(item: OpinetRadiusItem): MappedRadiusStation {
 
 // ─── 상세정보 (Fallback C) ────────────────────────────────────────────────────
 
-function resolveEnergyType(lpgYn: "Y" | "N" | undefined): EnergyType {
-  return lpgYn === "Y" ? "BOTH" : "OIL";
+/**
+ * LPG_YN → EnergyType.
+ * Y=LPG 전용, C=겸업(주유+LPG 모두 취급), N/미상=일반 주유소.
+ * CSV 실측(2026-09-04자) 대조 결과 Y는 겸업이 아니라 LPG 전용이었음 —
+ * energy_type='BOTH'인 328건 중 주유소 CSV에 있는 건 0건, 충전소 CSV에 251건.
+ * docs/MIGRATION-DB.md §13.1.
+ */
+function resolveEnergyType(lpgYn: "Y" | "N" | "C" | undefined): EnergyType {
+  if (lpgYn === "Y") return "LPG";
+  if (lpgYn === "C") return "BOTH";
+  return "OIL";
 }
 
 /**

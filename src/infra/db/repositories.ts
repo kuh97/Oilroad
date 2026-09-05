@@ -166,6 +166,101 @@ export async function findRefuelPointRowById(
   return row;
 }
 
+// ─── refuel_point — 유가 CSV 임포트 (docs/MIGRATION-DB.md §6 컬럼 소유권 규칙) ──
+//
+// upsertRefuelPointFromDetail(상세 API 소유 컬럼)과 SET 절이 절대 겹치면 안 됩니다.
+// has_car_wash·has_maintenance·has_cvs·is_kpetro·tel·detail_synced_at은 여기서
+// 건드리지 않습니다 — 매일 CSV를 다시 임포트해도 상세 API로 백필한 시설정보가
+// 지워지지 않는 이유입니다. lat/lng/coord_source는 기존 값이 없을 때만 채웁니다
+// (오피넷 실좌표를 지오코딩 값으로 덮지 않기 위함 — 좌표는 호출부가 미리 조회해서
+// 채워 넘기므로 여기 COALESCE는 이중 안전장치입니다).
+
+export interface CsvUpsertRow {
+  id: string;
+  name: string;
+  brandCode: string;
+  energyType: EnergyType;
+  lat: number;
+  lng: number;
+  coordSource: string; // 'OPINET' | 'KAKAO_ADDR' | 'KAKAO_KEYWORD'
+  addressRoad: string;
+  sigunCd: string | null;
+  isSelf: boolean;
+  pricedOn: string;    // "YYYY-MM-DD"
+  lastSeenOn: string;  // "YYYY-MM-DD"
+  priceGasoline: number | null;
+  priceDiesel: number | null;
+  priceLpg: number | null;
+  pricePremium: number | null;
+  priceKerosene: number | null;
+}
+
+/**
+ * 유가 CSV 병합 결과를 refuel_point에 upsert.
+ * scripts/import-price-csv.ts가 일 1회(또는 최초 1회 구축 시) 호출합니다.
+ * 반환값은 upsert를 시도한 행 수입니다. 호출부가 청크 단위로 나눠 부릅니다
+ * (Neon HTTP 드라이버 한 요청에 만 건 단위를 그대로 보내지 않기 위함).
+ */
+export async function bulkUpsertFromCsv(
+  rows: CsvUpsertRow[],
+  db: Db = getDb(),
+  now: Date = new Date(),
+): Promise<number> {
+  if (rows.length === 0) return 0;
+
+  const values = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    brandCode: r.brandCode,
+    energyType: r.energyType,
+    lat: r.lat,
+    lng: r.lng,
+    coordSource: r.coordSource,
+    addressRoad: r.addressRoad,
+    sigunCd: r.sigunCd,
+    isSelf: r.isSelf,
+    pricedOn: r.pricedOn,
+    lastSeenOn: r.lastSeenOn,
+    priceGasoline: r.priceGasoline,
+    priceDiesel: r.priceDiesel,
+    priceLpg: r.priceLpg,
+    pricePremium: r.pricePremium,
+    priceKerosene: r.priceKerosene,
+    source: "OPINET_CSV",
+    updatedAt: now,
+  }));
+
+  await db
+    .insert(refuelPoint)
+    .values(values)
+    .onConflictDoUpdate({
+      target: refuelPoint.id,
+      set: {
+        name: sql`excluded.name`,
+        brandCode: sql`excluded.brand_code`,
+        energyType: sql`excluded.energy_type`,
+        addressRoad: sql`excluded.address_road`,
+        sigunCd: sql`excluded.sigun_cd`,
+        isSelf: sql`excluded.is_self`,
+        pricedOn: sql`excluded.priced_on`,
+        lastSeenOn: sql`excluded.last_seen_on`,
+        priceGasoline: sql`excluded.price_gasoline`,
+        priceDiesel: sql`excluded.price_diesel`,
+        priceLpg: sql`excluded.price_lpg`,
+        pricePremium: sql`excluded.price_premium`,
+        priceKerosene: sql`excluded.price_kerosene`,
+        lat: sql`coalesce(${refuelPoint.lat}, excluded.lat)`,
+        lng: sql`coalesce(${refuelPoint.lng}, excluded.lng)`,
+        coordSource: sql`coalesce(${refuelPoint.coordSource}, excluded.coord_source)`,
+        updatedAt: sql`excluded.updated_at`,
+        // has_car_wash / has_maintenance / has_cvs / is_kpetro / tel /
+        // detail_synced_at / source — 의도적으로 없음 (컬럼 소유권 규칙)
+      },
+    });
+
+  return values.length;
+}
+
 // ─── sigungu_avg_price ──────────────────────────────────────────────────────
 
 export interface SigunguAvgPriceInput {
