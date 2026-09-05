@@ -406,26 +406,27 @@ Vercel Cron (일 1회)
 
 ## 9. 함께 고쳐야 하는 것
 
-### 9.1 `PRICE_STALE_HOURS` — 시간 기준 → 일자 기준 ★
+### 9.1 `PRICE_STALE_HOURS` — 시간 기준 배지 완전 제거 ★ (2026-09-05 결정으로 최종 확정)
 
 ```
 src/domain/params.ts:33   PRICE_STALE_HOURS = 6
 ```
 
 일 1회 스냅샷은 **항상 6시간보다 오래됐습니다.** 그대로 두면
-`result-card.tsx:42`와 `station/[id]/page.tsx:136`이 **모든 카드에 "오래된 정보" 배지**를 답니다.
+`result-card.tsx`와 `station/[id]/page.tsx`가 **모든 카드에 "오래된 정보" 배지**를 답니다.
 
-`isPriceStale(date, now, hours)` → `isPriceStale(pricedOn, today, days)` 로 교체하고,
-`priced_on`이 오늘/어제면 정상, 2일 이상이면 경고로 판정합니다.
+처음엔 `isPriceStale(date, now, hours)` → `isPriceStale(pricedOn, today, days)`로 바꿔
+일자 기준(2일 초과 시 경고)으로 교체했으나, **제품 결정으로 "오래된 정보" 경고 문구 자체를
+없앴습니다** — 날짜(`"2026-09-04 기준"`)만 그대로 보여주고 별도 낙인 문구는 달지 않습니다.
+`isPriceStale`·`PRICE_STALE_DAYS`·`cache-ttl.ts`는 이제 안 씁니다(삭제).
+`AGENTS.md` §6의 "오래된 정보 배지" 행도 이 결정에 맞춰 제거했습니다.
 
 ### 9.2 `approximateLastUpdateTime` 제거
 
-`cache-ttl.ts:68`은 오피넷 갱신 스케줄(1·2·9·12·16·19시)에서 **추정한 시각**을 화면에 띄우고 있습니다
-(`recommendation-service.ts:139`, `stations/nearby/route.ts:34`).
-CSV의 실제 `priced_on`으로 교체하면 추정이 사라집니다.
-
-표시 형식은 날짜형(`"2026-09-04 기준"`)으로 바꾸고, 임포트가 며칠 실패하면
-`"2026-09-04 기준 (3일 전)"` 처럼 경과일을 함께 노출합니다.
+`cache-ttl.ts`는 오피넷 갱신 스케줄(1·2·9·12·16·19시)에서 **추정한 시각**을 화면에 띄우고 있었습니다
+(`recommendation-service.ts`, `stations/nearby/route.ts`).
+CSV의 실제 `priced_on`으로 교체해 추정을 없앴고, 표시 형식도 날짜형(`"2026-09-04 기준"`)으로
+바꿨습니다 (§9.1 결정에 따라 경과일 표시는 넣지 않음).
 
 ### 9.3 시설 필터 의미 명시
 

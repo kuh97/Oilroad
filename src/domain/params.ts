@@ -30,9 +30,6 @@ export const MAX_RESULTS = 15;  // 개 — 화면 최대 후보 수
 export const OUTLIER_SIGMA = 3;  // σ — 중앙값 ± 이 배수 σ 벗어나면 이상치
 
 // ─── UI (§6.1, §5.3) ────────────────────────────────────────────────────────
-// 유가 CSV는 일 1회 스냅샷이라 "오늘/어제 기준"이 정상, 그 이상이면 "오래된 정보" 배지.
-// docs/MIGRATION-DB.md §9.1 — PRICE_STALE_HOURS(시간 단위)를 대체.
-export const PRICE_STALE_DAYS = 2;      // 일 — "오래된 정보" 배지 기준
 export const MIN_ROUTE_DISTANCE = 20_000; // m — 이보다 짧으면 안내 후 진행
 export const MIN_OD_GAP = 500;           // m — 출발지·목적지 최소 간격
 
