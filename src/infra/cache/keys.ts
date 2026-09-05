@@ -5,7 +5,7 @@
  */
 
 import { wgs84ToProjected } from "@/domain/geo";
-import type { KatecPoint, WGS84Point } from "@/domain/types";
+import type { WGS84Point } from "@/domain/types";
 
 /** 2km 격자 스냅 — 반경검색 캐시 키 중복 최대화 */
 const STATION_GRID_M = 2_000;
@@ -27,40 +27,6 @@ export function gridSnapWgs84(point: WGS84Point, gridM: number = STATION_GRID_M)
   const gx = snapToGrid(projected.x, gridM);
   const gy = snapToGrid(projected.y, gridM);
   return `${gx}_${gy}`;
-}
-
-/**
- * 반경 내 주유소 캐시 키.
- * KATEC 좌표를 2km 격자로 스냅해 인접 검색이 같은 캐시를 공유하게 합니다.
- *
- * @param prefix REDIS_KEY_PREFIX
- * @param center 검색 기준점 (KATEC)
- * @param prodcd 오피넷 연료 코드 (B027·D047·K015)
- */
-export function stationKey(prefix: string, center: KatecPoint, prodcd: string): string {
-  const gx = snapToGrid(center.x, STATION_GRID_M);
-  const gy = snapToGrid(center.y, STATION_GRID_M);
-  return `${prefix}:stn:${gx}:${gy}:${prodcd}`;
-}
-
-/**
- * 일일 오피넷 호출 예산 카운터 키.
- *
- * @param prefix REDIS_KEY_PREFIX
- * @param dateStr "YYYY-MM-DD" (KST 기준)
- */
-export function budgetKey(prefix: string, dateStr: string): string {
-  return `${prefix}:opinet:budget:${dateStr}`;
-}
-
-/**
- * 주유소 상세정보 캐시 키 (Fallback C — 7일 TTL).
- *
- * @param prefix REDIS_KEY_PREFIX
- * @param uniId 오피넷 UNI_ID
- */
-export function stationDetailKey(prefix: string, uniId: string): string {
-  return `${prefix}:stn-detail:${uniId}`;
 }
 
 /**

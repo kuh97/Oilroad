@@ -2,22 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   mapRadiusItem,
   mapDetailItem,
-  mapAvgSigunPriceItem,
   FUEL_TO_PRODCD,
   PRODCD_TO_FUEL,
 } from "../mapper";
 import {
   OpinetRadiusResponseSchema,
   OpinetDetailResponseSchema,
-  AvgSigunPriceResponseSchema,
 } from "../schema";
 import radiusFixture from "../../../../tests/fixtures/opinet-radius.json";
 import detailFixture from "../../../../tests/fixtures/opinet-detail.json";
-import avgSigunPriceFixture from "../../../../tests/fixtures/opinet-avg-sigun-price.json";
 
 const radiusItems = OpinetRadiusResponseSchema.parse(radiusFixture).RESULT.OIL;
 const detailItems = OpinetDetailResponseSchema.parse(detailFixture).RESULT.OIL;
-const avgSigunPriceItems = AvgSigunPriceResponseSchema.parse(avgSigunPriceFixture).RESULT.OIL;
 
 describe("mapRadiusItem — 반경검색 매핑", () => {
   it("UNI_ID → id, OS_NM → name, POLL_DIV_CD → brandCode", () => {
@@ -95,8 +91,14 @@ describe("mapDetailItem — 상세정보 매핑", () => {
     expect(mapped.energyType).toBe("OIL");
   });
 
-  it("LPG_YN=Y → energyType=BOTH", () => {
+  it("LPG_YN=Y → energyType=LPG (전용, 겸업 아님)", () => {
     const fakeDetail = { ...detailItems[0], LPG_YN: "Y" as const };
+    const mapped = mapDetailItem(fakeDetail);
+    expect(mapped.energyType).toBe("LPG");
+  });
+
+  it("LPG_YN=C → energyType=BOTH (겸업)", () => {
+    const fakeDetail = { ...detailItems[0], LPG_YN: "C" as const };
     const mapped = mapDetailItem(fakeDetail);
     expect(mapped.energyType).toBe("BOTH");
   });
@@ -112,37 +114,6 @@ describe("mapDetailItem — 상세정보 매핑", () => {
     expect(mapped["UNI_ID"]).toBeUndefined();
     expect(mapped["OS_NM"]).toBeUndefined();
     expect(mapped["POLL_DIV_CO"]).toBeUndefined();
-  });
-});
-
-describe("mapAvgSigunPriceItem — 시군구 평균가 매핑", () => {
-  it("SIGUNCD → sigunCd, PRODCD(B027) → fuel=GASOLINE", () => {
-    const item = avgSigunPriceItems.find((i) => i.PRODCD === "B027")!;
-    const mapped = mapAvgSigunPriceItem(item);
-    expect(mapped).not.toBeNull();
-    expect(mapped!.sigunCd).toBe(item.SIGUNCD);
-    expect(mapped!.fuel).toBe("GASOLINE");
-  });
-
-  it("PRODCD(D047) → fuel=DIESEL, PRODCD(K015) → fuel=LPG", () => {
-    const diesel = avgSigunPriceItems.find((i) => i.PRODCD === "D047")!;
-    const lpg = avgSigunPriceItems.find((i) => i.PRODCD === "K015")!;
-    expect(mapAvgSigunPriceItem(diesel)!.fuel).toBe("DIESEL");
-    expect(mapAvgSigunPriceItem(lpg)!.fuel).toBe("LPG");
-  });
-
-  it("PRODCD가 B034(고급휘발유)·C004(실내등유)면 null을 반환한다", () => {
-    const premium = avgSigunPriceItems.find((i) => i.PRODCD === "B034")!;
-    const kerosene = avgSigunPriceItems.find((i) => i.PRODCD === "C004")!;
-    expect(mapAvgSigunPriceItem(premium)).toBeNull();
-    expect(mapAvgSigunPriceItem(kerosene)).toBeNull();
-  });
-
-  it("PRICE 소수값을 원단위 정수로 반올림한다", () => {
-    const item = { ...avgSigunPriceItems[0], PRODCD: "B027", PRICE: 1906.6 };
-    const mapped = mapAvgSigunPriceItem(item);
-    expect(mapped!.avgPriceWon).toBe(1907);
-    expect(Number.isInteger(mapped!.avgPriceWon)).toBe(true);
   });
 });
 

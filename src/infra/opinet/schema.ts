@@ -42,7 +42,7 @@ export const OpinetDetailItemSchema = z.object({
   NEW_ADR: z.string().optional(),   // 도로명주소
   TEL: z.string().optional(),
   SIGUNCD: z.string().optional(),
-  LPG_YN: z.enum(["Y", "N"]).optional(),
+  LPG_YN: z.enum(["Y", "N", "C"]).optional(),  // Y=LPG전용 N=일반 C=겸업(둘 다 취급)
   MAINT_YN: z.enum(["Y", "N"]),
   CAR_WASH_YN: z.enum(["Y", "N"]),
   KPETRO_YN: z.enum(["Y", "N"]),

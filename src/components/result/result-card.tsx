@@ -2,14 +2,14 @@
 
 /**
  * 결과 카드 — PRODUCT.md §5.3 ④.
- * 가격 기준시각·오래된 정보 배지는 AGENTS.md §6 UI 불변식(제거 금지).
+ * 가격 기준일자 표시는 AGENTS.md §6 UI 불변식(제거 금지) — 유가 CSV가 하루 1회
+ * 스냅샷이라는 걸 사용자가 알 수 있어야 한다. "오래된 정보" 경고 문구는 넣지 않는다
+ * (제품 결정 — 날짜 자체가 정보이므로 별도 낙인 문구 없이 사실만 보여준다).
  */
 import Link from "next/link";
 import { ChevronRight, Droplets, PiggyBank, Store, Wrench } from "lucide-react";
 import { TierBadge } from "./tier-badge";
 import { distanceMToKm, durationSToMin } from "@/domain/pricing";
-import { isPriceStale } from "@/domain/cache-ttl";
-import { PRICE_STALE_HOURS } from "@/domain/params";
 import type { WireCandidate } from "@/app/api/_lib/types";
 
 const FACILITY_ICON: { key: keyof WireCandidate["facilities"]; Icon: typeof Droplets; label: string }[] = [
@@ -18,28 +18,25 @@ const FACILITY_ICON: { key: keyof WireCandidate["facilities"]; Icon: typeof Drop
   { key: "cvs", Icon: Store, label: "편의점" },
 ];
 
-function formatPriceTime(iso: string | null, now: Date): string {
-  if (!iso) return "기준시각 정보 없음";
+function formatPriceTime(iso: string | null): string {
+  if (!iso) return "기준일자 정보 없음";
   const date = new Date(iso);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  const stale = isPriceStale(date, now, PRICE_STALE_HOURS);
-  return stale ? `${hh}:${mm} 기준 (오래된 정보)` : `${hh}:${mm} 기준`;
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d} 기준`;
 }
 
 export function ResultCard({
   rank,
   candidate,
   referencePrice,
-  now,
 }: {
   rank: number;
   candidate: WireCandidate;
   referencePrice: number | null;
-  now: Date;
 }) {
-  const priceTimeText = formatPriceTime(candidate.priceUpdatedAt, now);
-  const isStale = candidate.priceUpdatedAt != null && isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
+  const priceTimeText = formatPriceTime(candidate.priceUpdatedAt);
   const activeFacilities = FACILITY_ICON.filter((f) => candidate.facilities[f.key]);
   // 카드에는 순이득(우회 손해까지 반영한 원화 총액) 대신, 평균가 대비 리터당 가격차만
   // 간단히 보여준다 — 정렬·T3 게이트 등 나머지 로직은 여전히 netSaving 기준.
@@ -97,7 +94,7 @@ export function ResultCard({
       )}
 
       <div className="mt-2.5 flex items-center justify-between border-t border-border pt-2">
-        <span className={`text-xs ${isStale ? "text-destructive" : "text-muted-foreground"}`}>{priceTimeText}</span>
+        <span className="text-xs text-muted-foreground">{priceTimeText}</span>
         <span className="flex items-center gap-0.5 text-sm font-medium text-primary">
           상세
           <ChevronRight className="size-3.5" aria-hidden />

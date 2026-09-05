@@ -112,7 +112,6 @@ export default function ResultPage() {
 
   const referencePrice = result?.referencePrice ?? partial?.referencePrice ?? null;
   const expansion = result?.expansion ?? partial?.expansion ?? null;
-  const now = new Date();
 
   const displayCandidates = useMemo(() => {
     const rawCandidates = result?.candidates ?? partial?.candidates ?? [];
@@ -222,7 +221,7 @@ export default function ResultPage() {
             <ul className="flex flex-col gap-2">
               {displayCandidates.map((c, i) => (
                 <li key={c.id}>
-                  <ResultCard rank={i + 1} candidate={c} referencePrice={referencePrice} now={now} />
+                  <ResultCard rank={i + 1} candidate={c} referencePrice={referencePrice} />
                 </li>
               ))}
             </ul>

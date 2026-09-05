@@ -91,8 +91,22 @@ export const KakaoCoord2AddressResponseSchema = z.object({
   documents: z.array(KakaoCoord2AddressDocumentSchema),
 });
 
+// ─── 주소 → 좌표 (정방향 지오코딩, CSV 마스터 임포트용) ────────────────────────
+// docs/MIGRATION-DB.md §4 — 오피넷 유가 CSV엔 좌표가 없어 이 API로 채웁니다.
+
+export const KakaoAddressSearchDocumentSchema = z.object({
+  address_name: z.string(),
+  x: z.string(), // 경도 — 문자열로 내려옴
+  y: z.string(), // 위도 — 문자열로 내려옴
+});
+
+export const KakaoAddressSearchResponseSchema = z.object({
+  documents: z.array(KakaoAddressSearchDocumentSchema),
+});
+
 export type KakaoRoutePoint = z.infer<typeof KakaoRoutePointSchema>;
 export type KakaoRoute = z.infer<typeof KakaoRouteSchema>;
 export type KakaoDirectionsResponse = z.infer<typeof KakaoDirectionsResponseSchema>;
 export type KakaoPlaceDocument = z.infer<typeof KakaoPlaceDocumentSchema>;
 export type KakaoCoord2AddressDocument = z.infer<typeof KakaoCoord2AddressDocumentSchema>;
+export type KakaoAddressSearchDocument = z.infer<typeof KakaoAddressSearchDocumentSchema>;

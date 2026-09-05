@@ -461,7 +461,7 @@ interface Vehicle {
 
 interface Filters {
   facilities: Facility[];
-  brands: string[]; // 오피넷 POLL_DIV_CD. "알뜰" 선택 시 RTE·RTX 둘 다 포함
+  brands: string[]; // 오피넷 POLL_DIV_CD. "알뜰" 선택 시 RTO·RTX 둘 다 포함
   kpetroOnly: boolean;
 }
 

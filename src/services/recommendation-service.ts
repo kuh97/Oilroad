@@ -7,19 +7,14 @@
  */
 
 import { getRoute } from "./route-service";
-import { collectStations, isOpinetBudgetAvailable } from "./station-service";
+import { collectStations } from "./station-service";
 import { computeReferencePrice } from "./price-service";
 import { logSearch } from "./event-service";
 import { getRedis } from "@/infra/cache/redis";
 import { getDb } from "@/infra/db/client";
 import { env } from "@/infra/env";
-import {
-  samplePolyline,
-  normalOffsets,
-  wgs84ToProjected,
-  pointToPolylineDistanceM,
-} from "@/domain/geo";
-import { classifyTier, needsExpansion } from "@/domain/tier";
+import { wgs84ToProjected, pointToPolylineDistanceM } from "@/domain/geo";
+import { classifyTier } from "@/domain/tier";
 import {
   estimateDetourDistanceM,
   estimateDetourDurationS,
@@ -31,16 +26,7 @@ import {
   scoreByMode,
 } from "@/domain/pricing";
 import { buildReason } from "@/domain/reason";
-import { approximateLastUpdateTime } from "@/domain/cache-ttl";
-import {
-  MIN_CANDIDATES,
-  T2_MAX,
-  T3_MAX,
-  OFFSET,
-  MAX_PRECISE,
-  MAX_RESULTS,
-  MIN_ROUTE_DISTANCE,
-} from "@/domain/params";
+import { T2_MAX, T3_MAX, MAX_PRECISE, MAX_RESULTS, MIN_ROUTE_DISTANCE } from "@/domain/params";
 import type {
   SearchInput,
   SearchResult,
@@ -55,14 +41,6 @@ import type {
 } from "@/domain/types";
 import type { RedisLike } from "./route-service";
 import type { Db } from "@/infra/db/client";
-
-/** STEP1 전(§5.3.2) 예산이 이미 소진됐을 때 — SSE조차 열지 않고 즉시 안내하는 신호 */
-export class QuotaExhaustedError extends Error {
-  constructor() {
-    super("오늘의 검색 제공량을 모두 사용했습니다.");
-    this.name = "QuotaExhaustedError";
-  }
-}
 
 export type ProgressStep = "ROUTE" | "COLLECT" | "EXPAND" | "PRECISE";
 
@@ -87,14 +65,13 @@ export interface SearchDeps {
   db?: Db;
   prefix?: string;
   now?: Date;
-  budgetLimit?: number;
-  /** FEATURE_EXPANSION_ENABLED */
-  expansionEnabled?: boolean;
 }
 
 interface InternalCandidate {
   station: RefuelPoint;
   price: number;
+  /** CSV 기준일자("YYYY-MM-DD"). 상세 API로만 채워진 행은 null — priceUpdatedAt이 비게 됨 */
+  pricedOn: string | null;
   dPerp: number;
   tier: Tier;
   detourDistanceM: number;
@@ -104,12 +81,17 @@ interface InternalCandidate {
 
 const MODES: readonly Mode[] = ["balanced", "minCost", "minDistance"];
 
+/** "YYYY-MM-DD" → 해당 날짜 UTC 자정 Date. §9.1·§9.2 — 실제 가격 기준일자를 그대로 표시합니다. */
+function pricedOnToDate(pricedOn: string | null): Date | undefined {
+  return pricedOn ? new Date(`${pricedOn}T00:00:00Z`) : undefined;
+}
+
 function toInternalCandidates(
-  stations: Array<{ station: RefuelPoint; price: number }>,
+  stations: Array<{ station: RefuelPoint; price: number; pricedOn: string | null }>,
   projectedPolyline: ReturnType<typeof wgs84ToProjected>[],
 ): InternalCandidate[] {
   const result: InternalCandidate[] = [];
-  for (const { station, price } of stations) {
+  for (const { station, price, pricedOn } of stations) {
     const stationProjected = wgs84ToProjected(station.location);
     const dPerp = pointToPolylineDistanceM(stationProjected, projectedPolyline);
     const tier = classifyTier(dPerp);
@@ -118,6 +100,7 @@ function toInternalCandidates(
     result.push({
       station,
       price,
+      pricedOn,
       dPerp,
       tier,
       detourDistanceM,
@@ -134,9 +117,7 @@ function finalizeCandidates(
   vehicle: Vehicle,
   mode: Mode,
   hasFacilityFilter: boolean,
-  now: Date,
 ): Candidate[] {
-  const priceUpdatedAt = approximateLastUpdateTime(now);
   const withScores = internal.map((ic) => {
     const tc = totalCost({
       priceStationWon: ic.price,
@@ -198,7 +179,7 @@ function finalizeCandidates(
       totalCost: w.totalCostWon,
       scores: w.scores,
       reason,
-      priceUpdatedAt,
+      priceUpdatedAt: pricedOnToDate(w.ic.pricedOn),
     };
   });
 }
@@ -265,14 +246,7 @@ export async function search(
   const db = deps.db ?? getDb();
   const prefix = deps.prefix ?? env.REDIS_KEY_PREFIX;
   const now = deps.now ?? new Date();
-  const budgetLimit = deps.budgetLimit ?? env.OPINET_DAILY_BUDGET;
-  const expansionEnabled = deps.expansionEnabled ?? env.FEATURE_EXPANSION_ENABLED;
   const startedAt = now.getTime();
-
-  // STEP0 — 예산 소진 감지(§5.3.2). SSE조차 열지 않고 즉시 안내해야 하므로 아무 것도 하지 않고 throw.
-  if (!(await isOpinetBudgetAvailable(redis, prefix, budgetLimit, now))) {
-    throw new QuotaExhaustedError();
-  }
 
   const warnings: Warning[] = [];
 
@@ -293,9 +267,8 @@ export async function search(
     onProgress?.({ type: "warning", data: warning });
   }
 
-  // STEP2 — 샘플링
+  // STEP2 — 경로 폴리라인을 투영좌표로
   onProgress?.({ type: "progress", step: "COLLECT" });
-  const samples = samplePolyline(baseRoute.polyline);
   const projectedPolyline = baseRoute.polyline.map(wgs84ToProjected);
 
   const filters = {
@@ -304,72 +277,19 @@ export async function search(
     kpetroOnly: input.filters.kpetroOnly,
   };
 
-  // STEP3 — 기본 수집
-  const baseCollected = await collectStations({
-    points: samples,
+  // STEP3 — 회랑(경로 bbox) 수집. T1~T3를 한 번에 가져오므로 확장 수집이 필요 없다
+  // (docs/MIGRATION-DB.md §7 Phase C).
+  const collected = await collectStations({
+    referencePoints: projectedPolyline,
+    marginM: T3_MAX,
     fuel: input.vehicle.fuel,
     filters,
-    retries: 1,
-    redis,
-    prefix,
     now,
-    budgetLimit,
+    db,
   });
-  for (const w of baseCollected.warnings) {
-    warnings.push(w);
-    onProgress?.({ type: "warning", data: w });
-  }
 
   // STEP4 — d_perp · tier 분류 (T3_MAX 초과는 A13으로 제외됨)
-  let internal = toInternalCandidates(baseCollected.stations, projectedPolyline);
-  const seenIds = new Set(internal.map((ic) => ic.station.id));
-
-  let t1Count = internal.filter((ic) => ic.tier === "T1").length;
-  let t2Count = internal.filter((ic) => ic.tier === "T2").length;
-
-  // STEP5 — 확장 게이트
-  let expansionTriggered = false;
-  let skippedReason: "QUOTA" | "DISABLED" | undefined;
-
-  if (!needsExpansion(t1Count, t2Count, MIN_CANDIDATES)) {
-    // 확장 불필요 — 그대로 STEP7
-  } else if (!expansionEnabled) {
-    skippedReason = "DISABLED";
-  } else if (!(await isOpinetBudgetAvailable(redis, prefix, budgetLimit, now))) {
-    // 확장 고지 배너(expansion.skippedReason === "QUOTA")가 이미 이 상황을 안내하므로,
-    // 같은 내용을 warnings 배열로 또 밀어넣어 배너 두 개가 겹쳐 뜨지 않게 한다.
-    skippedReason = "QUOTA";
-  } else {
-    // STEP6 — 확장 수집
-    expansionTriggered = true;
-    onProgress?.({ type: "progress", step: "EXPAND", radiusM: T3_MAX });
-
-    const offsetPoints = [
-      ...normalOffsets(samples, OFFSET),
-      ...normalOffsets(samples, -OFFSET),
-    ];
-    const expanded = await collectStations({
-      points: offsetPoints,
-      fuel: input.vehicle.fuel,
-      filters,
-      retries: 0,
-      redis,
-      prefix,
-      now,
-      budgetLimit,
-    });
-    for (const w of expanded.warnings) {
-      warnings.push(w);
-      onProgress?.({ type: "warning", data: w });
-    }
-
-    const newStations = expanded.stations.filter((s) => !seenIds.has(s.station.id));
-    const newInternal = toInternalCandidates(newStations, projectedPolyline);
-    for (const ic of newInternal) seenIds.add(ic.station.id);
-    internal = [...internal, ...newInternal];
-    t1Count = internal.filter((ic) => ic.tier === "T1").length;
-    t2Count = internal.filter((ic) => ic.tier === "T2").length;
-  }
+  let internal = toInternalCandidates(collected.stations, projectedPolyline);
 
   // STEP7 — P_ref
   const t1t2 = internal.filter((ic) => ic.tier === "T1" || ic.tier === "T2");
@@ -418,6 +338,16 @@ export async function search(
     return Math.max(...t3.map((ic) => ic.dPerp));
   }
 
+  // 회랑 수집이 T1~T3를 한 번에 가져와 STEP5·6(확장 게이트·수집)이 없어졌지만,
+  // "충분히 못 찾아 넓혀 찾았다"는 로딩 중 안내(AGENTS.md §6 제거 금지)는 결과가
+  // 나오기 전에도 떠야 한다. T3 게이트 직후 최종 반경이 이미 정해졌으므로,
+  // 정밀 계산(STEP10, 실제 카카오 API 호출이 있어 시간이 걸림)이 시작되기 전에
+  // 이 시점에서 알린다 — 가짜 지연이 아니라 이미 일어난 일을 알리는 것뿐이다.
+  const finalRadiusForProgress = computeFinalRadiusM(internal);
+  if (finalRadiusForProgress > T2_MAX) {
+    onProgress?.({ type: "progress", step: "EXPAND", radiusM: finalRadiusForProgress });
+  }
+
   // STEP9 — 1차 스코어링(추정치) + partial 이벤트
   const partialCandidates = finalizeCandidates(
     internal,
@@ -425,7 +355,6 @@ export async function search(
     input.vehicle,
     input.mode,
     hasFacilityFilter,
-    now,
   );
   onProgress?.({
     type: "partial",
@@ -433,7 +362,14 @@ export async function search(
       candidates: partialCandidates,
       referencePrice,
       refPriceSource,
-      expansion: { triggered: expansionTriggered, finalRadiusM: computeFinalRadiusM(internal), skippedReason },
+      // 회랑 수집이 T1~T3를 한 번에 가져오므로 "확장"이라는 별도 단계는 없다.
+      // 배너(AGENTS.md §6 제거 금지)는 "최종 채택된 후보가 T2_MAX를 넘겨 우회했는가"로
+      // 계속 켜진다 — finalRadiusM만 보고 그려지므로 문구는 그대로 유지된다.
+      expansion: {
+        triggered: computeFinalRadiusM(internal) > T2_MAX,
+        finalRadiusM: computeFinalRadiusM(internal),
+        skippedReason: undefined,
+      },
     },
   });
 
@@ -480,7 +416,6 @@ export async function search(
     input.vehicle,
     input.mode,
     hasFacilityFilter,
-    now,
   );
   finalCandidates = finalCandidates.slice(0, MAX_RESULTS);
 
@@ -490,7 +425,7 @@ export async function search(
     candidates: finalCandidates,
     referencePrice,
     refPriceSource,
-    expansion: { triggered: expansionTriggered, finalRadiusM, skippedReason },
+    expansion: { triggered: finalRadiusM > T2_MAX, finalRadiusM, skippedReason: undefined },
     warnings,
   };
 

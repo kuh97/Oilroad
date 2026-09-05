@@ -1,0 +1,1 @@
+DROP TABLE "sigungu_avg_price" CASCADE;

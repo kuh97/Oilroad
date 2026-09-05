@@ -30,7 +30,6 @@ export const MAX_RESULTS = 15;  // 개 — 화면 최대 후보 수
 export const OUTLIER_SIGMA = 3;  // σ — 중앙값 ± 이 배수 σ 벗어나면 이상치
 
 // ─── UI (§6.1, §5.3) ────────────────────────────────────────────────────────
-export const PRICE_STALE_HOURS = 6;     // 시간 — "오래된 정보" 배지 기준
 export const MIN_ROUTE_DISTANCE = 20_000; // m — 이보다 짧으면 안내 후 진행
 export const MIN_OD_GAP = 500;           // m — 출발지·목적지 최소 간격
 

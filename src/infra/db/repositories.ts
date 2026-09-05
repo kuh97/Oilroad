@@ -7,13 +7,30 @@
  * BudgetStore 주입 패턴과 동일).
  */
 
-import { and, avg, eq, inArray, like, sql } from "drizzle-orm";
+import { and, avg, eq, gt, gte, inArray, lte, like, sql } from "drizzle-orm";
 import { getDb, type Db } from "./client";
-import { refuelPoint, sigunguAvgPrice } from "./schema";
+import { refuelPoint } from "./schema";
 import { mapDetailItem, FUEL_TO_PRODCD } from "@/infra/opinet/mapper";
 import type { OpinetDetailItem } from "@/infra/opinet/schema";
 import { wgs84, katec } from "@/domain/types";
 import type { RefuelPoint, EnergyType, Fuel } from "@/domain/types";
+
+/** Fuel → refuel_point 가격 컬럼. bbox 조회·시군구/시도/전국 평균 조회가 공유합니다. */
+function priceColumnFor(fuel: Fuel) {
+  switch (fuel) {
+    case "GASOLINE": return refuelPoint.priceGasoline;
+    case "DIESEL": return refuelPoint.priceDiesel;
+    case "LPG": return refuelPoint.priceLpg;
+  }
+}
+
+function priceValueFor(row: RefuelPointRow, fuel: Fuel): number | null {
+  switch (fuel) {
+    case "GASOLINE": return row.priceGasoline;
+    case "DIESEL": return row.priceDiesel;
+    case "LPG": return row.priceLpg;
+  }
+}
 
 // ─── refuel_point ───────────────────────────────────────────────────────────
 
@@ -166,65 +183,173 @@ export async function findRefuelPointRowById(
   return row;
 }
 
-// ─── sigungu_avg_price ──────────────────────────────────────────────────────
+// ─── refuel_point — 유가 CSV 임포트 (docs/MIGRATION-DB.md §6 컬럼 소유권 규칙) ──
+//
+// upsertRefuelPointFromDetail(상세 API 소유 컬럼)과 SET 절이 절대 겹치면 안 됩니다.
+// has_car_wash·has_maintenance·has_cvs·is_kpetro·tel·detail_synced_at은 여기서
+// 건드리지 않습니다 — 매일 CSV를 다시 임포트해도 상세 API로 백필한 시설정보가
+// 지워지지 않는 이유입니다. lat/lng/coord_source는 기존 값이 없을 때만 채웁니다
+// (오피넷 실좌표를 지오코딩 값으로 덮지 않기 위함 — 좌표는 호출부가 미리 조회해서
+// 채워 넘기므로 여기 COALESCE는 이중 안전장치입니다).
 
-export interface SigunguAvgPriceInput {
-  sigunCd: string;
-  fuel: Fuel;
-  avgPriceWon: number;
-}
-
-export type SigunguAvgPriceInsert = typeof sigunguAvgPrice.$inferInsert;
-
-/** SigunguAvgPriceInput[] → sigungu_avg_price insert rows. 순수 함수 (DB 미접근). */
-export function toSigunguAvgPriceInserts(
-  rows: SigunguAvgPriceInput[],
-  now: Date = new Date(),
-): SigunguAvgPriceInsert[] {
-  return rows.map((r) => ({
-    sigunCd: r.sigunCd,
-    prodCd: FUEL_TO_PRODCD[r.fuel],
-    avgPrice: r.avgPriceWon,
-    syncedAt: now,
-  }));
+export interface CsvUpsertRow {
+  id: string;
+  name: string;
+  brandCode: string;
+  energyType: EnergyType;
+  lat: number;
+  lng: number;
+  coordSource: string; // 'OPINET' | 'KAKAO_ADDR' | 'KAKAO_KEYWORD'
+  addressRoad: string;
+  sigunCd: string | null;
+  isSelf: boolean;
+  pricedOn: string;    // "YYYY-MM-DD"
+  lastSeenOn: string;  // "YYYY-MM-DD"
+  priceGasoline: number | null;
+  priceDiesel: number | null;
+  priceLpg: number | null;
+  pricePremium: number | null;
+  priceKerosene: number | null;
 }
 
 /**
- * 시군구 평균가 일괄 upsert — `scripts/sync-sigungu-avg.ts`가 일 1회 호출합니다 (§7.2).
- * 반환값은 upsert를 시도한 행 수입니다.
+ * 유가 CSV 병합 결과를 refuel_point에 upsert.
+ * scripts/import-price-csv.ts가 일 1회(또는 최초 1회 구축 시) 호출합니다.
+ * 반환값은 upsert를 시도한 행 수입니다. 호출부가 청크 단위로 나눠 부릅니다
+ * (Neon HTTP 드라이버 한 요청에 만 건 단위를 그대로 보내지 않기 위함).
  */
-export async function bulkUpsertSigunguAvgPrices(
-  rows: SigunguAvgPriceInput[],
+export async function bulkUpsertFromCsv(
+  rows: CsvUpsertRow[],
   db: Db = getDb(),
   now: Date = new Date(),
 ): Promise<number> {
   if (rows.length === 0) return 0;
-  const values = toSigunguAvgPriceInserts(rows, now);
+
+  const values = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    brandCode: r.brandCode,
+    energyType: r.energyType,
+    lat: r.lat,
+    lng: r.lng,
+    coordSource: r.coordSource,
+    addressRoad: r.addressRoad,
+    sigunCd: r.sigunCd,
+    isSelf: r.isSelf,
+    pricedOn: r.pricedOn,
+    lastSeenOn: r.lastSeenOn,
+    priceGasoline: r.priceGasoline,
+    priceDiesel: r.priceDiesel,
+    priceLpg: r.priceLpg,
+    pricePremium: r.pricePremium,
+    priceKerosene: r.priceKerosene,
+    source: "OPINET_CSV",
+    updatedAt: now,
+  }));
+
   await db
-    .insert(sigunguAvgPrice)
+    .insert(refuelPoint)
     .values(values)
     .onConflictDoUpdate({
-      target: [sigunguAvgPrice.sigunCd, sigunguAvgPrice.prodCd],
+      target: refuelPoint.id,
       set: {
-        avgPrice: sql`excluded.avg_price`,
-        syncedAt: sql`excluded.synced_at`,
+        name: sql`excluded.name`,
+        brandCode: sql`excluded.brand_code`,
+        energyType: sql`excluded.energy_type`,
+        addressRoad: sql`excluded.address_road`,
+        sigunCd: sql`excluded.sigun_cd`,
+        isSelf: sql`excluded.is_self`,
+        pricedOn: sql`excluded.priced_on`,
+        lastSeenOn: sql`excluded.last_seen_on`,
+        priceGasoline: sql`excluded.price_gasoline`,
+        priceDiesel: sql`excluded.price_diesel`,
+        priceLpg: sql`excluded.price_lpg`,
+        pricePremium: sql`excluded.price_premium`,
+        priceKerosene: sql`excluded.price_kerosene`,
+        lat: sql`coalesce(${refuelPoint.lat}, excluded.lat)`,
+        lng: sql`coalesce(${refuelPoint.lng}, excluded.lng)`,
+        coordSource: sql`coalesce(${refuelPoint.coordSource}, excluded.coord_source)`,
+        updatedAt: sql`excluded.updated_at`,
+        // has_car_wash / has_maintenance / has_cvs / is_kpetro / tel /
+        // detail_synced_at / source — 의도적으로 없음 (컬럼 소유권 규칙)
       },
     });
+
   return values.length;
 }
 
-/** P_ref 시군구 가중평균 폴백 조회 (price-service가 Phase 7에서 사용, §6.1) */
+// ─── refuel_point — 경로 검색 (docs/MIGRATION-DB.md §7 Phase C) ──────────────
+
+export interface BboxRefuelPointResult {
+  station: RefuelPoint;
+  price: number;
+  pricedOn: string | null; // "YYYY-MM-DD". 상세 API로만 채워진 행(CSV 미도달)은 null
+}
+
+export interface Bbox {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+/**
+ * bbox 안의 주유소를 실가격과 함께 조회 — 오피넷 반경검색을 대체합니다 (§7 Phase C).
+ * `price_{fuel} > 0`(A3 — 미취급 제외)과 `last_seen_on >= now - 7일`(폐업 감지, CSV가
+ * 며칠간 재발견하지 못한 곳은 제외)만 필터링합니다. 티어 분류·정밀 거리 계산은
+ * 호출부(station-service → recommendation-service)의 몫입니다 — 여기서는 bbox
+ * 사각형 안의 후보 전량만 돌려줍니다.
+ */
+export async function findRefuelPointsInBbox(
+  bbox: Bbox,
+  fuel: Fuel,
+  now: Date,
+  db: Db = getDb(),
+): Promise<BboxRefuelPointResult[]> {
+  const priceCol = priceColumnFor(fuel);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const cutoff = sevenDaysAgo.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  const rows = await db
+    .select()
+    .from(refuelPoint)
+    .where(
+      and(
+        gte(refuelPoint.lat, bbox.minLat),
+        lte(refuelPoint.lat, bbox.maxLat),
+        gte(refuelPoint.lng, bbox.minLng),
+        lte(refuelPoint.lng, bbox.maxLng),
+        gt(priceCol, 0),
+        gte(refuelPoint.lastSeenOn, cutoff),
+      ),
+    );
+
+  return rows.map((row) => ({
+    station: fromRefuelPointRow(row),
+    price: priceValueFor(row, fuel)!,
+    pricedOn: row.pricedOn,
+  }));
+}
+
+// ─── P_ref 시군구/시도/전국 평균 — refuel_point 실시간 집계 (§7 Phase C) ──────
+//
+// 예전엔 오피넷 avgSigunPrice.do를 일 1회 배치로 긁어 sigungu_avg_price에 저장해뒀다가
+// 조회했지만, 이제 refuel_point 자체가 전국 실가격 마스터라 그때그때 집계하면 된다
+// (배치·오피넷 호출 불필요 — MIGRATION-DB.md §2 "일 배치 오피넷 호출 0회").
+// price-service.ts는 이 세 함수를 이름·시그니처 그대로 호출하므로 변경이 없다.
+
+/** P_ref 시군구 평균 폴백 조회 (price-service가 §8에서 사용) */
 export async function findSigunguAvgPrice(
   sigunCd: string,
   fuel: Fuel,
   db: Db = getDb(),
 ): Promise<number | null> {
-  const prodCd = FUEL_TO_PRODCD[fuel];
+  const priceCol = priceColumnFor(fuel);
   const [row] = await db
-    .select({ avgPrice: sigunguAvgPrice.avgPrice })
-    .from(sigunguAvgPrice)
-    .where(and(eq(sigunguAvgPrice.sigunCd, sigunCd), eq(sigunguAvgPrice.prodCd, prodCd)));
-  return row?.avgPrice ?? null;
+    .select({ avgPrice: avg(priceCol) })
+    .from(refuelPoint)
+    .where(and(eq(refuelPoint.sigunCd, sigunCd), gt(priceCol, 0)));
+  return row?.avgPrice != null ? Math.round(Number(row.avgPrice)) : null;
 }
 
 /**
@@ -236,11 +361,11 @@ export async function findSidoAvgPrice(
   fuel: Fuel,
   db: Db = getDb(),
 ): Promise<number | null> {
-  const prodCd = FUEL_TO_PRODCD[fuel];
+  const priceCol = priceColumnFor(fuel);
   const [row] = await db
-    .select({ avgPrice: avg(sigunguAvgPrice.avgPrice) })
-    .from(sigunguAvgPrice)
-    .where(and(like(sigunguAvgPrice.sigunCd, `${sidoPrefix2}%`), eq(sigunguAvgPrice.prodCd, prodCd)));
+    .select({ avgPrice: avg(priceCol) })
+    .from(refuelPoint)
+    .where(and(like(refuelPoint.sigunCd, `${sidoPrefix2}%`), gt(priceCol, 0)));
   return row?.avgPrice != null ? Math.round(Number(row.avgPrice)) : null;
 }
 
@@ -248,10 +373,10 @@ export async function findSidoAvgPrice(
  * P_ref 전국 평균 폴백 조회 — 시군구·시도 평균가가 모두 없을 때의 마지막 단계 (PRODUCT.md §8).
  */
 export async function findNationalAvgPrice(fuel: Fuel, db: Db = getDb()): Promise<number | null> {
-  const prodCd = FUEL_TO_PRODCD[fuel];
+  const priceCol = priceColumnFor(fuel);
   const [row] = await db
-    .select({ avgPrice: avg(sigunguAvgPrice.avgPrice) })
-    .from(sigunguAvgPrice)
-    .where(eq(sigunguAvgPrice.prodCd, prodCd));
+    .select({ avgPrice: avg(priceCol) })
+    .from(refuelPoint)
+    .where(gt(priceCol, 0));
   return row?.avgPrice != null ? Math.round(Number(row.avgPrice)) : null;
 }

@@ -7,7 +7,7 @@
 import { katecToWgs84 } from "@/domain/geo";
 import { katec } from "@/domain/types";
 import type { RefuelPoint, KatecPoint, WGS84Point, Fuel, EnergyType } from "@/domain/types";
-import type { OpinetRadiusItem, OpinetDetailItem, AvgSigunPriceItem } from "./schema";
+import type { OpinetRadiusItem, OpinetDetailItem } from "./schema";
 
 // ─── 연료 코드 매핑 ───────────────────────────────────────────────────────────
 
@@ -60,8 +60,17 @@ export function mapRadiusItem(item: OpinetRadiusItem): MappedRadiusStation {
 
 // ─── 상세정보 (Fallback C) ────────────────────────────────────────────────────
 
-function resolveEnergyType(lpgYn: "Y" | "N" | undefined): EnergyType {
-  return lpgYn === "Y" ? "BOTH" : "OIL";
+/**
+ * LPG_YN → EnergyType.
+ * Y=LPG 전용, C=겸업(주유+LPG 모두 취급), N/미상=일반 주유소.
+ * CSV 실측(2026-09-04자) 대조 결과 Y는 겸업이 아니라 LPG 전용이었음 —
+ * energy_type='BOTH'인 328건 중 주유소 CSV에 있는 건 0건, 충전소 CSV에 251건.
+ * docs/MIGRATION-DB.md §13.1.
+ */
+function resolveEnergyType(lpgYn: "Y" | "N" | "C" | undefined): EnergyType {
+  if (lpgYn === "Y") return "LPG";
+  if (lpgYn === "C") return "BOTH";
+  return "OIL";
 }
 
 /**
@@ -87,30 +96,5 @@ export function mapDetailItem(item: OpinetDetailItem): RefuelPoint {
       cvs: item.CVS_YN === "Y",
     },
     isKpetro: item.KPETRO_YN === "Y",
-  };
-}
-
-// ─── 시군구별 평균가격 (§7.2) ─────────────────────────────────────────────────
-
-/** 시군구 평균가 API 항목을 도메인 타입으로 변환한 중간 구조체 */
-export interface MappedSigunguAvgPrice {
-  sigunCd: string;
-  fuel: Fuel;
-  avgPriceWon: number;
-}
-
-/**
- * 시군구 평균가 API 항목 → 도메인 중간 구조체.
- * 오피넷 응답에는 B034(고급휘발유)·C004(실내등유)도 섞여 있으므로,
- * `PRODCD_TO_FUEL`(B027·D047·K015)에 없는 항목은 `null`을 반환해 걸러냅니다.
- * `PRICE`는 소수(예: 2102.57)로 오므로 원단위로 반올림합니다.
- */
-export function mapAvgSigunPriceItem(item: AvgSigunPriceItem): MappedSigunguAvgPrice | null {
-  const fuel = PRODCD_TO_FUEL[item.PRODCD];
-  if (!fuel) return null;
-  return {
-    sigunCd: item.SIGUNCD,
-    fuel,
-    avgPriceWon: Math.round(item.PRICE),
   };
 }
