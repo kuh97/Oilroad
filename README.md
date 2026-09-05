@@ -115,10 +115,13 @@ cp .env.example .env.local     # 아래 표를 참고해 값을 채웁니다
 
 ```bash
 pnpm db:migrate               # drizzle-kit 마이그레이션 적용
-pnpm data:sync-sigungu        # 시군구 평균가 동기화 (최초 1회 + 이후 일 1회 cron)
+pnpm data:import-csv          # 오피넷 유가 CSV → refuel_point 마스터 임포트 (최초 1회 + 이후 일 1회 cron)
 ```
 
-> `refuel_point`(주유소 마스터)는 별도 임포트 스크립트가 없습니다 — 표준데이터에 `UNI_ID`·시설 컬럼이 없어(`verify:standard-data` 실측, 폴백 C) 반경검색에서 처음 보는 주유소를 오피넷 상세 API로 조회할 때마다 채워집니다 ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §7.1).
+> `refuel_point`(주유소 마스터)는 오피넷 유가 CSV(전국 전수, `UNI_ID` 포함)로 채웁니다 — 표준데이터는
+> `UNI_ID`·시설 컬럼이 없어(`verify:standard-data` 실측) 쓰지 않습니다. 좌표가 없는 신규 주유소만
+> 카카오 지오코딩으로 보강하고, 시설 정보(세차·정비·편의점)는 상세 API 백그라운드 백필로 채웁니다
+> ([`docs/MIGRATION-DB.md`](docs/MIGRATION-DB.md) §4·§7 Phase E).
 
 ### 개발 서버
 
@@ -175,9 +178,7 @@ pnpm verify:uturn             # ④ 경로 API가 유턴·중앙분리대를 반
 | `APP_BASE_URL`              | ✅   | 배포 URL. 딥링크 폴백·OG 태그에 사용                                                                                                                                                                          |
 | `CRON_SECRET`               | ✅   | 배치 엔드포인트(`/api/cron/*`) 인증 토큰                                                                                                                                                                      |
 | `REDIS_KEY_PREFIX`          | ✅   | Redis 키 접두사. `dev` / `prod` 로 환경 분리                                                                                                                                                                  |
-| `FEATURE_EXPANSION_ENABLED` | —    | 확장 수집(STEP 6) 온·오프. **오피넷 일일 한도 확인 전까지 `false`**                                                                                                                                           |
-| `OPINET_DAILY_BUDGET`       | —    | 오피넷 일일 호출 상한 (기본 `280`). **오피넷 확인 한도가 하루 300회**이므로 안전 여유를 두고 낮게 잡습니다. 초과 시 확장 수집을 건너뜀 — 용량 분석은 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §5.3.1 |
-| `OPINET_CONCURRENCY`        | —    | 오피넷 동시 호출 수 (기본 `8`)                                                                                                                                                                                |
+| `OPINET_CONCURRENCY`        | —    | 오피넷 동시 호출 수 (기본 `8`). 유가 CSV 임포트(`data:import-csv`)의 지오코딩 단계에서만 씀                                                                                                                   |
 | `CACHE_BYPASS`              | —    | 디버깅용 캐시 우회. 기본 `false`. 운영에서 켜지 마십시오                                                                                                                                                      |
 
 ### 키 발급

@@ -30,7 +30,7 @@ import {
 } from "@/lib/recompute-candidates";
 import { distanceMToKm, durationSToMin } from "@/domain/pricing";
 import { isPriceStale } from "@/domain/cache-ttl";
-import { PRICE_STALE_HOURS } from "@/domain/params";
+import { PRICE_STALE_DAYS } from "@/domain/params";
 import { brandName, wgs84 } from "@/domain/types";
 import {
   buildDeeplink,
@@ -134,7 +134,7 @@ export function StationDetailView({ id }: { id: string }) {
   const now = new Date();
   const isStale =
     candidate.priceUpdatedAt != null &&
-    isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
+    isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_DAYS);
 
   const rank =
     recomputeAndSort(
@@ -271,7 +271,7 @@ export function StationDetailView({ id }: { id: string }) {
           {candidate.tier === "T3" &&
             " 먼 거리를 우회하므로 전화 확인을 권합니다."}
           {isStale &&
-            ` 가격 정보가 ${PRICE_STALE_HOURS}시간 이상 전 기준입니다.`}
+            ` 가격 정보가 ${PRICE_STALE_DAYS}일 이상 전 기준입니다.`}
         </AlertDescription>
       </Alert>
 

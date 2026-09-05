@@ -15,6 +15,13 @@
       "when": 1788599827712,
       "tag": "0001_useful_harry_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788616084444,
+      "tag": "0002_mature_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

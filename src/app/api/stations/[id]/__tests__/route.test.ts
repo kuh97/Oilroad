@@ -73,8 +73,42 @@ describe("GET /api/stations/:id", () => {
     expect(body.facilities.carWash).toBe(true);
   });
 
-  it("lastPrice가 없으면 price는 null이다", async () => {
-    findRefuelPointRowByIdMock.mockResolvedValue(row({ lastPrice: null, lastPriceProd: null, priceTradedAt: null }));
+  it("lastPrice가 없으면 유가 CSV 스냅샷(price_gasoline)으로 폴백한다", async () => {
+    findRefuelPointRowByIdMock.mockResolvedValue(
+      row({
+        lastPrice: null,
+        lastPriceProd: null,
+        priceTradedAt: null,
+        priceGasoline: 1809,
+        pricedOn: "2026-09-04",
+      }),
+    );
+    const res = await GET(new Request("https://example.com/api/stations/A0012345"), makeParams("A0012345"));
+    const body = await res.json();
+    expect(body.price).toBe(1809);
+    expect(body.priceUpdatedAt).toBe("2026-09-04T00:00:00.000Z");
+  });
+
+  it("LPG 충전소는 CSV 폴백 시 price_lpg를 쓴다", async () => {
+    findRefuelPointRowByIdMock.mockResolvedValue(
+      row({
+        energyType: "LPG",
+        lastPrice: null,
+        lastPriceProd: null,
+        priceTradedAt: null,
+        priceLpg: 1050,
+        pricedOn: "2026-09-04",
+      }),
+    );
+    const res = await GET(new Request("https://example.com/api/stations/A0012345"), makeParams("A0012345"));
+    const body = await res.json();
+    expect(body.price).toBe(1050);
+  });
+
+  it("lastPrice·CSV 가격 둘 다 없으면 price는 null이다", async () => {
+    findRefuelPointRowByIdMock.mockResolvedValue(
+      row({ lastPrice: null, lastPriceProd: null, priceTradedAt: null, priceGasoline: null }),
+    );
     const res = await GET(new Request("https://example.com/api/stations/A0012345"), makeParams("A0012345"));
     const body = await res.json();
     expect(body.price).toBeNull();

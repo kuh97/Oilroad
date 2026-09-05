@@ -9,7 +9,7 @@ import { ChevronRight, Droplets, PiggyBank, Store, Wrench } from "lucide-react";
 import { TierBadge } from "./tier-badge";
 import { distanceMToKm, durationSToMin } from "@/domain/pricing";
 import { isPriceStale } from "@/domain/cache-ttl";
-import { PRICE_STALE_HOURS } from "@/domain/params";
+import { PRICE_STALE_DAYS } from "@/domain/params";
 import type { WireCandidate } from "@/app/api/_lib/types";
 
 const FACILITY_ICON: { key: keyof WireCandidate["facilities"]; Icon: typeof Droplets; label: string }[] = [
@@ -19,12 +19,14 @@ const FACILITY_ICON: { key: keyof WireCandidate["facilities"]; Icon: typeof Drop
 ];
 
 function formatPriceTime(iso: string | null, now: Date): string {
-  if (!iso) return "기준시각 정보 없음";
+  if (!iso) return "기준일자 정보 없음";
   const date = new Date(iso);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  const stale = isPriceStale(date, now, PRICE_STALE_HOURS);
-  return stale ? `${hh}:${mm} 기준 (오래된 정보)` : `${hh}:${mm} 기준`;
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  const stale = isPriceStale(date, now, PRICE_STALE_DAYS);
+  const daysAgo = Math.floor((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
+  return stale ? `${y}-${m}-${d} 기준 (${daysAgo}일 전)` : `${y}-${m}-${d} 기준`;
 }
 
 export function ResultCard({
@@ -39,7 +41,7 @@ export function ResultCard({
   now: Date;
 }) {
   const priceTimeText = formatPriceTime(candidate.priceUpdatedAt, now);
-  const isStale = candidate.priceUpdatedAt != null && isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_HOURS);
+  const isStale = candidate.priceUpdatedAt != null && isPriceStale(new Date(candidate.priceUpdatedAt), now, PRICE_STALE_DAYS);
   const activeFacilities = FACILITY_ICON.filter((f) => candidate.facilities[f.key]);
   // 카드에는 순이득(우회 손해까지 반영한 원화 총액) 대신, 평균가 대비 리터당 가격차만
   // 간단히 보여준다 — 정렬·T3 게이트 등 나머지 로직은 여전히 netSaving 기준.

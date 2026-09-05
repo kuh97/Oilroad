@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ResultCard } from "../result-card";
-import { PRICE_STALE_HOURS } from "@/domain/params";
+import { PRICE_STALE_DAYS } from "@/domain/params";
 import type { WireCandidate } from "@/app/api/_lib/types";
 
 const NOW = new Date("2026-08-31T12:00:00.000Z");
@@ -71,13 +71,13 @@ describe("ResultCard", () => {
     expect(screen.queryByText("평균가")).toBeNull();
   });
 
-  it("PRICE_STALE_HOURS를 초과하면 '오래된 정보' 배지를 붙인다", () => {
-    const staleTime = new Date(NOW.getTime() - (PRICE_STALE_HOURS + 1) * 60 * 60 * 1000);
+  it("PRICE_STALE_DAYS를 초과하면 '오래된 정보' 배지를 붙인다", () => {
+    const staleTime = new Date(NOW.getTime() - (PRICE_STALE_DAYS + 1) * 24 * 60 * 60 * 1000);
     render(<ResultCard rank={1} candidate={candidate({ priceUpdatedAt: staleTime.toISOString() })} referencePrice={1210} now={NOW} />);
     expect(screen.getByText(/오래된 정보/)).toBeTruthy();
   });
 
-  it("PRICE_STALE_HOURS 이내면 '오래된 정보' 배지가 없다", () => {
+  it("PRICE_STALE_DAYS 이내면 '오래된 정보' 배지가 없다", () => {
     render(<ResultCard rank={1} candidate={candidate()} referencePrice={1210} now={NOW} />);
     expect(screen.queryByText(/오래된 정보/)).toBeNull();
   });

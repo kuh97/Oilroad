@@ -70,7 +70,7 @@ describe("useSearchStream — SSE 정상 흐름", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        sseStreamResponse(['event: error\ndata: {"code":"QUOTA_EXCEEDED","message":"오늘의 검색 제공량을 모두 사용했습니다."}\n\n']),
+        sseStreamResponse(['event: error\ndata: {"code":"INTERNAL_ERROR","message":"검색 중 오류가 발생했습니다."}\n\n']),
       ),
     );
 
@@ -80,7 +80,7 @@ describe("useSearchStream — SSE 정상 흐름", () => {
     });
 
     const state = useSearchStore.getState();
-    expect(state.error?.code).toBe("QUOTA_EXCEEDED");
+    expect(state.error?.code).toBe("INTERNAL_ERROR");
     expect(state.result).toBeNull();
   });
 });

@@ -6,8 +6,7 @@ import {
   findRefuelPointsByIds,
   findRefuelPointRowById,
   bulkUpsertFromCsv,
-  toSigunguAvgPriceInserts,
-  bulkUpsertSigunguAvgPrices,
+  findRefuelPointsInBbox,
   findSigunguAvgPrice,
   findSidoAvgPrice,
   findNationalAvgPrice,
@@ -131,21 +130,6 @@ describe("fromRefuelPointRow — 순수 변환", () => {
   it("facilities 객체로 시설 컬럼을 묶는다", () => {
     const mapped = fromRefuelPointRow(baseRow);
     expect(mapped.facilities).toEqual({ carWash: true, maintenance: false, cvs: true });
-  });
-});
-
-describe("toSigunguAvgPriceInserts — 순수 변환", () => {
-  it("Fuel → prodCd(B027/D047/K015)로 변환한다", () => {
-    const rows = toSigunguAvgPriceInserts(
-      [
-        { sigunCd: "0101", fuel: "GASOLINE", avgPriceWon: 1900 },
-        { sigunCd: "0101", fuel: "DIESEL", avgPriceWon: 1700 },
-        { sigunCd: "0101", fuel: "LPG", avgPriceWon: 1000 },
-      ],
-      NOW,
-    );
-    expect(rows.map((r) => r.prodCd)).toEqual(["B027", "D047", "K015"]);
-    expect(rows.every((r) => r.syncedAt === NOW)).toBe(true);
   });
 });
 
@@ -365,25 +349,70 @@ describe("bulkUpsertFromCsv — DB 접근", () => {
   });
 });
 
-describe("bulkUpsertSigunguAvgPrices — DB 접근", () => {
-  it("빈 배열이면 DB를 호출하지 않고 0을 반환한다", async () => {
-    const insert = vi.fn();
-    const result = await bulkUpsertSigunguAvgPrices([], { insert } as unknown as Db, NOW);
-    expect(result).toBe(0);
-    expect(insert).not.toHaveBeenCalled();
+describe("findRefuelPointsInBbox — DB 접근", () => {
+  it("bbox 안의 row를 station+price+pricedOn으로 매핑한다", async () => {
+    const row = {
+      id: "A0033584",
+      name: "테스트주유소",
+      brandCode: "SKE",
+      energyType: "OIL",
+      lat: 37.5,
+      lng: 127.0,
+      katecX: null,
+      katecY: null,
+      addressRoad: null,
+      addressJibun: null,
+      tel: null,
+      sigunCd: "0301",
+      hasCarWash: false,
+      hasMaintenance: false,
+      hasCvs: false,
+      isKpetro: false,
+      isSelf: true,
+      coordSource: "KAKAO_ADDR",
+      lastPrice: null,
+      lastPriceProd: null,
+      priceTradedAt: null,
+      priceGasoline: 1809,
+      priceDiesel: 1789,
+      priceLpg: null,
+      pricePremium: null,
+      priceKerosene: null,
+      pricedOn: "2026-09-04",
+      lastSeenOn: "2026-09-04",
+      source: "OPINET_CSV",
+      detailSyncedAt: null,
+      updatedAt: NOW,
+    };
+    const where = vi.fn().mockResolvedValue([row]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findRefuelPointsInBbox(
+      { minLat: 37, maxLat: 38, minLng: 126, maxLng: 128 },
+      "GASOLINE",
+      NOW,
+      { select } as unknown as Db,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].station.id).toBe("A0033584");
+    expect(result[0].price).toBe(1809); // GASOLINE → price_gasoline
+    expect(result[0].pricedOn).toBe("2026-09-04");
   });
 
-  it("행 수만큼 upsert를 시도하고 그 수를 반환한다", async () => {
-    const fake = fakeInsertDb();
-    const rows = [
-      { sigunCd: "0101", fuel: "GASOLINE" as const, avgPriceWon: 1900 },
-      { sigunCd: "0102", fuel: "GASOLINE" as const, avgPriceWon: 1950 },
-    ];
-    const result = await bulkUpsertSigunguAvgPrices(rows, fake as unknown as Db, NOW);
-    expect(result).toBe(2);
-    expect(fake.insert).toHaveBeenCalledTimes(1);
-    const insertedRows = fake.values.mock.calls[0][0] as unknown[];
-    expect(insertedRows).toHaveLength(2);
+  it("결과가 없으면 빈 배열을 반환한다", async () => {
+    const where = vi.fn().mockResolvedValue([]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+
+    const result = await findRefuelPointsInBbox(
+      { minLat: 37, maxLat: 38, minLng: 126, maxLng: 128 },
+      "LPG",
+      NOW,
+      { select } as unknown as Db,
+    );
+    expect(result).toEqual([]);
   });
 });
 

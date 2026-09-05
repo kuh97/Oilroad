@@ -37,8 +37,7 @@ describe("GET /api/stations/nearby — 요청 검증", () => {
 describe("GET /api/stations/nearby — 정상 흐름", () => {
   it("경로 의존 필드(tier·detour 등) 없이 { stations } 형태로 반환한다", async () => {
     collectStationsMock.mockResolvedValue({
-      stations: [{ station: station(), price: 1700 }],
-      warnings: [],
+      stations: [{ station: station(), price: 1700, pricedOn: "2026-09-04" }],
     });
 
     const res = await GET(request("lat=37.5&lng=127.0&fuel=GASOLINE"));
@@ -52,12 +51,13 @@ describe("GET /api/stations/nearby — 정상 흐름", () => {
   });
 
   it("sort=price(기본)면 가격순, sort=distance면 거리순으로 정렬한다", async () => {
+    // SEARCH_RADIUS(5km) 이내로 잡아야 한다 — nearby route가 bbox 초과분을 원형
+    // 반경으로 다시 걸러낸다 (bbox는 사각형이라 5km 밖 모서리가 섞일 수 있음).
     collectStationsMock.mockResolvedValue({
       stations: [
-        { station: station({ id: "cheap-far", location: wgs84(37.55, 127.05) }), price: 1500 },
-        { station: station({ id: "expensive-near", location: wgs84(37.5, 127.0) }), price: 1900 },
+        { station: station({ id: "cheap-far", location: wgs84(37.53, 127.02) }), price: 1500, pricedOn: "2026-09-04" },
+        { station: station({ id: "expensive-near", location: wgs84(37.5, 127.0) }), price: 1900, pricedOn: "2026-09-04" },
       ],
-      warnings: [],
     });
 
     const byPrice = await GET(request("lat=37.5&lng=127.0&fuel=GASOLINE&sort=price"));

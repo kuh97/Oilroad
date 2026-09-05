@@ -36,13 +36,13 @@ const EMPTY_FILTERS: WireFilters = {
   kpetroOnly: false,
 };
 
-/** 오피넷 POLL_DIV_CD ↔ 표시명 — PRODUCT.md §5.2. RTE·RTX는 "알뜰" 하나로 묶는다. */
+/** 오피넷 POLL_DIV_CD ↔ 표시명 — PRODUCT.md §5.2. RTO·RTX는 "알뜰" 하나로 묶는다. */
 const BRAND_GROUPS: { label: string; codes: string[] }[] = [
   { label: "SK에너지", codes: ["SKE"] },
   { label: "GS칼텍스", codes: ["GSC"] },
   { label: "현대오일뱅크", codes: ["HDO"] },
   { label: "S-OIL", codes: ["SOL"] },
-  { label: "알뜰", codes: ["RTE", "RTX"] },
+  { label: "알뜰", codes: ["RTO", "RTX"] },
   { label: "농협", codes: ["NHO"] },
   { label: "자가상표", codes: ["ETC"] },
   { label: "E1", codes: ["E1G"] },

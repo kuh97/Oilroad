@@ -13,7 +13,6 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "data:sync-sigungu": "tsx --env-file=.env.local scripts/sync-sigungu-avg.ts",
     "data:import-csv": "tsx --env-file=.env.local scripts/import-price-csv.ts",
     "verify:coord": "tsx --env-file=.env.local scripts/verify/coord.mts",
     "verify:standard-data": "tsx --env-file=.env.local scripts/verify/standard-data.mts",

@@ -14,7 +14,6 @@ import {
   date,
   timestamp,
   index,
-  primaryKey,
 } from "drizzle-orm/pg-core";
 
 // ─── refuel_point — 주유소 마스터 (§7.1, docs/MIGRATION-DB.md §5.1) ────────────
@@ -69,20 +68,5 @@ export const refuelPoint = pgTable(
     index("idx_refuel_point_energy").on(table.energyType),
     index("idx_refuel_point_latlng").on(table.lat, table.lng),
     index("idx_refuel_point_seen").on(table.lastSeenOn),
-  ],
-);
-
-// ─── sigungu_avg_price — P_ref 폴백용 (§7.2) ───────────────────────────────────
-
-export const sigunguAvgPrice = pgTable(
-  "sigungu_avg_price",
-  {
-    sigunCd: text("sigun_cd").notNull(),
-    prodCd: text("prod_cd").notNull(),              // B027 · D047 · K015
-    avgPrice: integer("avg_price").notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.sigunCd, table.prodCd] }),
   ],
 );

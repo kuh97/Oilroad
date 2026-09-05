@@ -1,17 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-const { searchMock, FakeQuotaExhaustedError } = vi.hoisted(() => {
-  class FakeQuotaExhaustedError extends Error {
-    constructor() {
-      super("오늘의 검색 제공량을 모두 사용했습니다.");
-      this.name = "QuotaExhaustedError";
-    }
-  }
-  return { searchMock: vi.fn(), FakeQuotaExhaustedError };
-});
+const { searchMock } = vi.hoisted(() => ({ searchMock: vi.fn() }));
 vi.mock("@/services/recommendation-service", () => ({
   search: (...args: unknown[]) => searchMock(...args),
-  QuotaExhaustedError: FakeQuotaExhaustedError,
 }));
 
 import { POST } from "../route";
@@ -89,15 +80,7 @@ describe("POST /api/search — Accept: application/json 폴백", () => {
     expect(body.baseRoute.polyline).toEqual([{ lat: 37.42, lng: 127.12 }]);
   });
 
-  it("QuotaExhaustedError면 429를 반환한다", async () => {
-    searchMock.mockRejectedValue(new FakeQuotaExhaustedError());
-    const res = await POST(request(validBody(), "application/json"));
-    expect(res.status).toBe(429);
-    const body = await res.json();
-    expect(body.code).toBe("QUOTA_EXCEEDED");
-  });
-
-  it("그 외 에러는 500을 반환한다", async () => {
+  it("에러는 500을 반환한다", async () => {
     searchMock.mockRejectedValue(new Error("boom"));
     const res = await POST(request(validBody(), "application/json"));
     expect(res.status).toBe(500);
@@ -128,7 +111,7 @@ describe("POST /api/search — SSE (기본)", () => {
   it("에러 발생 시 error 이벤트 이후 더 이상 이벤트가 없다(스트림 종료)", async () => {
     searchMock.mockImplementation(async (_input, onProgress) => {
       onProgress?.({ type: "progress", step: "ROUTE" });
-      throw new FakeQuotaExhaustedError();
+      throw new Error("boom");
     });
 
     const res = await POST(request(validBody()));
@@ -137,7 +120,7 @@ describe("POST /api/search — SSE (기본)", () => {
 
     expect(types[types.length - 1]).toBe("error");
     expect(types).not.toContain("result");
-    expect(text).toContain("QUOTA_EXCEEDED");
+    expect(text).toContain("INTERNAL_ERROR");
   });
 });
 

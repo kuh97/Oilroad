@@ -55,7 +55,7 @@ const BRAND_NAME: Record<string, string> = {
   GSC: "GS칼텍스",
   HDO: "현대오일뱅크",
   SOL: "S-OIL",
-  RTE: "자영알뜰",
+  RTO: "자영알뜰",
   RTX: "고속도로알뜰",
   NHO: "농협알뜰",
   ETC: "자가상표",
@@ -122,12 +122,7 @@ export interface BaseRoute {
 }
 
 /** ARCHITECTURE.md §6.1 Warning */
-export type WarningCode =
-  | "PARTIAL_STATION_FETCH_FAILED"
-  | "QUOTA_EXCEEDED"
-  | "TIMEOUT"
-  | "SHORT_ROUTE"
-  | "NO_REFERENCE_PRICE";
+export type WarningCode = "TIMEOUT" | "SHORT_ROUTE" | "NO_REFERENCE_PRICE";
 
 export interface Warning {
   code: WarningCode;

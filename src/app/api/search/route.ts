@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { search, QuotaExhaustedError, type ProgressEvent } from "@/services/recommendation-service";
+import { search, type ProgressEvent } from "@/services/recommendation-service";
 import { wgs84 } from "@/domain/types";
 import type { SearchInput } from "@/domain/types";
 import { SearchRequestSchema, type SearchRequest } from "@/app/api/_lib/schema";
@@ -50,11 +50,6 @@ function progressFrame(event: ProgressEvent): string {
 }
 
 function errorPayload(err: unknown): { code: string; message: string } {
-  if (err instanceof QuotaExhaustedError) {
-    return { code: "QUOTA_EXCEEDED", message: err.message };
-  }
-  // QuotaExhaustedError는 정상적인 운영 상태(예산 소진)라 로그가 필요 없지만,
-  // 그 외 예외는 클라이언트에 일반화된 메시지만 나가므로 서버 로그가 유일한 단서다.
   console.error("[POST /api/search] search() 실패:", err);
   return { code: "INTERNAL_ERROR", message: "검색 중 오류가 발생했습니다." };
 }
@@ -72,8 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json(serializeSearchResult(result));
     } catch (err) {
       const { code, message } = errorPayload(err);
-      const status = err instanceof QuotaExhaustedError ? 429 : 500;
-      return NextResponse.json({ code, message }, { status });
+      return NextResponse.json({ code, message }, { status: 500 });
     }
   }
 

@@ -16,7 +16,6 @@ function optional(key: string, defaultValue: string): string {
 export const env = {
   get OPINET_CERT_KEY() { return required("OPINET_CERT_KEY"); },
   get OPINET_BASE_URL() { return optional("OPINET_BASE_URL", "https://www.opinet.co.kr/api"); },
-  get OPINET_DAILY_BUDGET() { return Number(optional("OPINET_DAILY_BUDGET", "280")); },
   get OPINET_CONCURRENCY() { return Number(optional("OPINET_CONCURRENCY", "8")); },
   get UPSTASH_REDIS_REST_URL() { return required("UPSTASH_REDIS_REST_URL"); },
   get UPSTASH_REDIS_REST_TOKEN() { return required("UPSTASH_REDIS_REST_TOKEN"); },
@@ -27,5 +26,4 @@ export const env = {
   get KAKAO_LOCAL_BASE_URL() { return optional("KAKAO_LOCAL_BASE_URL", "https://dapi.kakao.com"); },
   get DATABASE_URL() { return required("DATABASE_URL"); },
   get CRON_SECRET() { return required("CRON_SECRET"); },
-  get FEATURE_EXPANSION_ENABLED() { return optional("FEATURE_EXPANSION_ENABLED", "false") === "true"; },
 };
